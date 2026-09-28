@@ -1,7 +1,17 @@
 /**
  * Web Audio API Sound Engine & Multi-track Synthesizer
- * Provides jitter-free synthesized music, hitsounds, and latency calibration.
+ * Provides jitter-free synthesized music, generated-track playback, hitsounds, and latency calibration.
  */
+
+import { getPatternEvents } from '../data/patterns';
+
+// A decoded 2-minute stereo track is ~40 MB of PCM, so only the most recent few are kept.
+const MAX_CACHED_TRACKS = 3;
+const PREVIEW_FADE_SEC = 0.35;
+const PREVIEW_STOP_FADE_SEC = 0.08;
+const END_FADE_SEC = 0.6;
+
+export type AudioPreviewResult = 'playing' | 'cancelled' | 'failed';
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
@@ -24,7 +34,17 @@ class SoundEngine {
 
   // Custom audio playback
   private customBufferSource: AudioBufferSourceNode | null = null;
+  private customTrackGain: GainNode | null = null; // per-track gain so a run can fade out at the end
   private customAudioBuffer: AudioBuffer | null = null;
+
+  // Generated tracks by URL, oldest first (LRU): pending/settled loads and finished decodes
+  private audioLoads = new Map<string, Promise<AudioBuffer>>();
+  private decodedAudio = new Map<string, AudioBuffer>();
+
+  // Buffer preview for generated songs
+  private previewSource: AudioBufferSourceNode | null = null;
+  private previewGain: GainNode | null = null;
+  private previewRequest = 0; // bumped by stopPreview(), so a newer request cancels older ones
 
   // Volumes
   private musicVolume = 0.7;
@@ -80,9 +100,31 @@ class SoundEngine {
     return data;
   }
 
+  /** Song position of the sound coming out of the speakers right now (not the render clock). */
   public getCurrentTime(): number {
     if (!this.isPlaying || !this.ctx) return this.pauseOffset;
-    return this.ctx.currentTime - this.songStartTime;
+    return this.getHeardContextTime() - this.songStartTime;
+  }
+
+  /** Output latency (render -> speaker) in seconds, e.g. ~0.05 s wired, 0.2 s+ on Bluetooth. */
+  public getOutputLatency(): number {
+    if (!this.ctx) return 0;
+    return this.ctx.currentTime - this.getHeardContextTime();
+  }
+
+  // ctx.currentTime runs ahead of what the player hears by the device's output latency.
+  // getOutputTimestamp() tells which context time is at the speaker right now.
+  private getHeardContextTime(): number {
+    const ctx = this.ctx!;
+    if (typeof ctx.getOutputTimestamp === 'function') {
+      const ts = ctx.getOutputTimestamp();
+      if (ts.contextTime !== undefined && ts.performanceTime !== undefined && ts.performanceTime > 0) {
+        const heard = ts.contextTime + (performance.now() - ts.performanceTime) / 1000;
+        // Guard against bogus timestamps (e.g. right after resume)
+        if (heard <= ctx.currentTime + 0.001 && heard > ctx.currentTime - 1) return heard;
+      }
+    }
+    return ctx.currentTime - (ctx.baseLatency || 0) - (ctx.outputLatency || 0);
   }
 
   public getAudioContextTime(): number {
@@ -331,126 +373,29 @@ class SoundEngine {
     });
   }
 
-  // --- Procedural / Pre-composed Synthesized Patterns ---
+  // --- Built-in Synth Arrangements (see data/patterns.ts) ---
   // Step scheduler runs at 16th notes (4 steps per beat)
   private schedulePatternStep(patternId: string, step: number, time: number, stepDuration: number) {
-    const beat = Math.floor(step / 4);
-    const subStep = step % 4; // 0, 1, 2, 3
-
-    if (patternId === 'neon_velocity') {
-      // DnB / Cyberpunk: 140 BPM, high octane breakbeat rhythm
-      // Kick on beat 0 and beat 2.5
-      if (beat % 4 === 0 && subStep === 0) this.triggerKick(time, 1.0);
-      if (beat % 4 === 2 && subStep === 2) this.triggerKick(time, 0.9);
-
-      // Snare on beat 1 and beat 3
-      if ((beat % 4 === 1 || beat % 4 === 3) && subStep === 0) this.triggerSnare(time, 1.0);
-
-      // Hi-hats: rapid 16th pattern
-      this.triggerHiHat(time, subStep === 2);
-
-      // Bass notes: F2, G#2, D#2, C2 progression
-      const bassProg = [87.31, 87.31, 103.83, 77.78, 65.41, 65.41, 77.78, 87.31];
-      const currentBass = bassProg[Math.floor(beat / 2) % bassProg.length];
-      if (subStep === 0 || (subStep === 2 && beat % 2 === 1)) {
-        this.triggerBass(time, currentBass, stepDuration * 1.8);
-      }
-
-      // Fast cyberpunk synth arpeggio
-      const melodyNotes = [349.23, 415.30, 523.25, 622.25, 698.46, 523.25, 415.30, 349.23];
-      const leadFreq = melodyNotes[step % melodyNotes.length];
-      if (beat >= 4) {
-        this.triggerLead(time, leadFreq, stepDuration * 0.9, 'sawtooth');
-      }
-    } else if (patternId === 'midnight_tokyo') {
-      // Synthwave / City Pop: 115 BPM, four-on-the-floor + gated snare + lush chords
-      if (subStep === 0) {
-        this.triggerKick(time, 1.0);
-      }
-      if ((beat % 4 === 1 || beat % 4 === 3) && subStep === 0) {
-        this.triggerSnare(time, 1.1);
-      }
-      if (subStep === 2) {
-        this.triggerHiHat(time, false);
-      }
-
-      // 80s rolling bassline: octaves
-      const root = [110, 110, 130.81, 98.0][Math.floor(beat / 4) % 4];
-      const bassFreq = subStep % 2 === 0 ? root : root * 2;
-      this.triggerBass(time, bassFreq, stepDuration * 0.85);
-
-      // Lush synth chords on beat 0 and 2
-      if (subStep === 0 && beat % 2 === 0) {
-        const chordIndex = Math.floor(beat / 4) % 4;
-        const chords = [
-          [220, 261.63, 329.63, 415.30], // Am7
-          [261.63, 329.63, 392.00, 493.88], // Cmaj7
-          [174.61, 220.00, 261.63, 329.63], // Fmaj7
-          [196.00, 246.94, 293.66, 369.99], // G7
-        ];
-        this.triggerChord(time, chords[chordIndex], stepDuration * 7);
-      }
-
-      // Lyrical Lead Synth
-      if (subStep === 0 && beat % 2 === 1) {
-        const leadScale = [440, 493.88, 523.25, 659.25, 783.99];
-        const note = leadScale[(beat * 3) % leadScale.length];
-        this.triggerLead(time, note, stepDuration * 3.5, 'triangle');
-      }
-    } else if (patternId === 'solar_overdrive') {
-      // Speedcore / Chiptune: 160 BPM, rapid pulse
-      if (subStep === 0) {
-        this.triggerKick(time, 1.1);
-      }
-      if ((beat % 2 === 1) && subStep === 0) {
-        this.triggerSnare(time, 0.95);
-      }
-      this.triggerHiHat(time, subStep === 1 || subStep === 3);
-
-      // Rapid Chiptune Bass
-      const roots = [130.81, 146.83, 164.81, 196.0];
-      const r = roots[Math.floor(beat / 4) % roots.length];
-      this.triggerBass(time, r, stepDuration * 0.9);
-
-      // High velocity 16th chiptune square arpeggios
-      const chipScale = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25];
-      const chipNote = chipScale[step % chipScale.length];
-      this.triggerLead(time, chipNote, stepDuration * 0.75, 'square');
-    } else if (patternId === 'starlight_lullaby') {
-      // Lo-Fi Future Bass: 95 BPM, mellow, warm
-      if ((beat % 4 === 0 || beat % 4 === 2) && subStep === 0) {
-        this.triggerKick(time, 0.8);
-      }
-      if ((beat % 4 === 1 || beat % 4 === 3) && subStep === 0) {
-        this.triggerSnare(time, 0.75);
-      }
-      if (subStep === 2) {
-        this.triggerHiHat(time, false);
-      }
-
-      // Warm Sub Bass
-      const lofiRoots = [65.41, 87.31, 98.00, 77.78];
-      const curLofi = lofiRoots[Math.floor(beat / 4) % lofiRoots.length];
-      if (subStep === 0) {
-        this.triggerBass(time, curLofi, stepDuration * 3.5);
-      }
-
-      // Warm E.Piano / Chime chords
-      if (subStep === 0 && beat % 4 === 0) {
-        const chordIdx = Math.floor(beat / 4) % 4;
-        const chords = [
-          [261.63, 329.63, 392.0, 493.88],
-          [220.0, 261.63, 329.63, 392.0],
-          [174.61, 220.0, 261.63, 329.63],
-          [196.0, 246.94, 293.66, 392.0],
-        ];
-        this.triggerChord(time, chords[chordIdx], stepDuration * 14);
-      }
-
-      if (subStep === 0 && beat % 2 === 0) {
-        const bells = [523.25, 587.33, 659.25, 783.99, 880.0];
-        const bell = bells[(beat * 2) % bells.length];
-        this.triggerLead(time, bell, stepDuration * 2.5, 'sine');
+    for (const ev of getPatternEvents(patternId, step)) {
+      switch (ev.inst) {
+        case 'kick':
+          this.triggerKick(time, ev.accent);
+          break;
+        case 'snare':
+          this.triggerSnare(time, ev.accent);
+          break;
+        case 'hat':
+          this.triggerHiHat(time, ev.open);
+          break;
+        case 'bass':
+          this.triggerBass(time, ev.freq, stepDuration * ev.steps);
+          break;
+        case 'lead':
+          this.triggerLead(time, ev.freq, stepDuration * ev.steps, ev.wave);
+          break;
+        case 'chord':
+          this.triggerChord(time, ev.freqs, stepDuration * ev.steps);
+          break;
       }
     }
   }
@@ -465,6 +410,7 @@ class SoundEngine {
   ) {
     this.init();
     this.stop(); // Stop any previous playback
+    this.stopPreview();
 
     if (!this.ctx) return;
 
@@ -473,6 +419,8 @@ class SoundEngine {
     this.songTotalDuration = duration;
     this.pauseOffset = startOffset;
     this.isPlaying = true;
+    // Remember (or forget) the track so resume() never replays a previous song's buffer
+    this.customAudioBuffer = customBuffer ?? null;
 
     // Reset step tracker
     const stepDuration = 60 / bpm / 4;
@@ -480,11 +428,18 @@ class SoundEngine {
     this.songStartTime = this.ctx.currentTime - startOffset;
 
     if (customBuffer) {
-      this.customAudioBuffer = customBuffer;
-      this.customBufferSource = this.ctx.createBufferSource();
-      this.customBufferSource.buffer = customBuffer;
-      if (this.musicGain) this.customBufferSource.connect(this.musicGain);
-      this.customBufferSource.start(0, startOffset);
+      const source = this.ctx.createBufferSource();
+      const trackGain = this.ctx.createGain();
+      source.buffer = customBuffer;
+      source.connect(trackGain);
+      if (this.musicGain) trackGain.connect(this.musicGain);
+      source.onended = () => {
+        source.disconnect();
+        trackGain.disconnect();
+      };
+      source.start(0, startOffset);
+      this.customBufferSource = source;
+      this.customTrackGain = trackGain;
       return;
     }
 
@@ -516,7 +471,8 @@ class SoundEngine {
     scheduler();
   }
 
-  public playPreview(patternId: string, bpm: number, start = 15, duration = 8) {
+  /** Preview a synth arrangement; onEnded runs only when it stops by itself (not via stopPreview). */
+  public playPreview(patternId: string, bpm: number, start = 15, duration = 8, onEnded?: () => void) {
     this.stopPreview();
     this.init();
     if (!this.ctx) return;
@@ -531,6 +487,7 @@ class SoundEngine {
       if (!this.isPreviewPlaying || !this.ctx) return;
       if (this.ctx.currentTime >= previewEndTime) {
         this.stopPreview();
+        onEnded?.();
         return;
       }
 
@@ -546,11 +503,94 @@ class SoundEngine {
     scheduler();
   }
 
+  /**
+   * Preview a segment of a generated track with a short fade in/out; it stops by itself.
+   * Resolves 'cancelled' when another preview, stopPreview() or a song start came first.
+   * onEnded runs only when a started preview finishes by itself (not via stopPreview).
+   */
+  public async playAudioPreview(
+    url: string,
+    start: number,
+    duration: number,
+    onEnded?: () => void
+  ): Promise<AudioPreviewResult> {
+    this.stopPreview();
+    const request = this.previewRequest;
+    this.init();
+
+    let buffer: AudioBuffer;
+    try {
+      buffer = this.getLoadedAudio(url) ?? (await this.loadAudio(url));
+    } catch (err) {
+      if (request !== this.previewRequest) return 'cancelled';
+      console.warn(`[soundEngine] Could not load preview audio ${url}:`, err);
+      return 'failed';
+    }
+    if (request !== this.previewRequest || this.isPlaying) return 'cancelled';
+
+    const ctx = this.ctx;
+    const out = this.musicGain;
+    if (!ctx || !out) return 'failed';
+
+    const offset = Math.min(Math.max(0, start), Math.max(0, buffer.duration - 1));
+    const length = Math.min(Math.max(0.5, duration), buffer.duration - offset);
+    if (!(length > 0)) return 'failed';
+    const fade = Math.min(PREVIEW_FADE_SEC, length / 4);
+    const t0 = ctx.currentTime + 0.02;
+    const tEnd = t0 + length;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(1, t0 + fade);
+    gain.gain.setValueAtTime(1, tEnd - fade);
+    gain.gain.linearRampToValueAtTime(0, tEnd);
+    gain.connect(out);
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(gain);
+    source.onended = () => {
+      source.disconnect();
+      gain.disconnect();
+      // stopPreview() clears previewSource before stopping, so a match means it ended by itself
+      if (this.previewSource === source) {
+        this.previewSource = null;
+        this.previewGain = null;
+        onEnded?.();
+      }
+    };
+    source.start(t0, offset, length);
+
+    this.previewSource = source;
+    this.previewGain = gain;
+    return 'playing';
+  }
+
+  /** Stops both the synth preview and the generated-track preview (and cancels pending loads). */
   public stopPreview() {
+    this.previewRequest++;
     this.isPreviewPlaying = false;
     if (this.previewTimerId) {
       clearTimeout(this.previewTimerId);
       this.previewTimerId = null;
+    }
+
+    const source = this.previewSource;
+    const gain = this.previewGain;
+    this.previewSource = null;
+    this.previewGain = null;
+    if (source && gain && this.ctx) {
+      // Quick fade instead of a hard cut, which would click
+      const now = this.ctx.currentTime;
+      try {
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(gain.gain.value, now);
+        gain.gain.linearRampToValueAtTime(0, now + PREVIEW_STOP_FADE_SEC);
+        source.stop(now + PREVIEW_STOP_FADE_SEC + 0.01);
+      } catch {
+        // Source might already have stopped
+      }
     }
   }
 
@@ -586,6 +626,34 @@ class SoundEngine {
       }
       this.customBufferSource = null;
     }
+    if (this.customTrackGain) {
+      this.customTrackGain.disconnect();
+      this.customTrackGain = null;
+    }
+  }
+
+  /**
+   * Like stop(), but a buffer track fades out over fadeSec instead of cutting off with a click.
+   * Synth notes that are already scheduled simply ring out.
+   */
+  public fadeOutAndStop(fadeSec = END_FADE_SEC) {
+    const source = this.customBufferSource;
+    const trackGain = this.customTrackGain;
+    // Detach first so stop() leaves this track alone; its onended handler disconnects it
+    this.customBufferSource = null;
+    this.customTrackGain = null;
+    this.stop();
+    if (!source || !trackGain || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    try {
+      trackGain.gain.cancelScheduledValues(now);
+      trackGain.gain.setValueAtTime(trackGain.gain.value, now);
+      trackGain.gain.linearRampToValueAtTime(0, now + fadeSec);
+      source.stop(now + fadeSec);
+    } catch {
+      // Source might already have stopped
+    }
   }
 
   public async decodeAudioFile(file: File): Promise<AudioBuffer> {
@@ -593,6 +661,63 @@ class SoundEngine {
     if (!this.ctx) throw new Error('AudioContext unavailable');
     const arrayBuffer = await file.arrayBuffer();
     return await this.ctx.decodeAudioData(arrayBuffer);
+  }
+
+  // --- Generated tracks (public/music/*.mp3) ---
+
+  /** Fetch + decode a track once; concurrent callers share the request, failures are not cached. */
+  public loadAudio(url: string): Promise<AudioBuffer> {
+    const pending = this.audioLoads.get(url);
+    if (pending) {
+      this.touchTrack(url, pending);
+      return pending;
+    }
+
+    const request = this.fetchAndDecode(url);
+    this.audioLoads.set(url, request);
+    this.evictOldTracks();
+    request.then(
+      (buffer) => {
+        if (this.audioLoads.get(url) === request) this.decodedAudio.set(url, buffer);
+      },
+      () => {
+        if (this.audioLoads.get(url) === request) this.audioLoads.delete(url);
+      }
+    );
+    return request;
+  }
+
+  /** The decoded track if loadAudio(url) already finished, otherwise null. */
+  public getLoadedAudio(url: string): AudioBuffer | null {
+    const buffer = this.decodedAudio.get(url);
+    if (!buffer) return null;
+    const request = this.audioLoads.get(url);
+    if (request) this.touchTrack(url, request);
+    return buffer;
+  }
+
+  private async fetchAndDecode(url: string): Promise<AudioBuffer> {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${url} answered ${res.status}`);
+    const data = await res.arrayBuffer();
+    this.init();
+    if (!this.ctx) throw new Error('AudioContext unavailable');
+    return await this.ctx.decodeAudioData(data);
+  }
+
+  private touchTrack(url: string, request: Promise<AudioBuffer>) {
+    // Map keeps insertion order, so re-inserting marks the track as most recently used
+    this.audioLoads.delete(url);
+    this.audioLoads.set(url, request);
+  }
+
+  private evictOldTracks() {
+    while (this.audioLoads.size > MAX_CACHED_TRACKS) {
+      const oldest = this.audioLoads.keys().next().value;
+      if (oldest === undefined) break;
+      this.audioLoads.delete(oldest);
+      this.decodedAudio.delete(oldest);
+    }
   }
 }
 

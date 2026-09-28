@@ -1,4 +1,5 @@
 import React from 'react';
+import { handleStageError } from '../data/assets';
 
 interface StageBackdropProps {
   imageUrl: string;
@@ -12,6 +13,7 @@ export const StageBackdrop: React.FC<StageBackdropProps> = ({ imageUrl, blur = t
       key={imageUrl}
       src={imageUrl}
       alt=""
+      onError={handleStageError}
       className={`absolute inset-0 w-full h-full object-cover animate-backdrop-in ${
         blur ? 'scale-110 blur-md' : ''
       }`}

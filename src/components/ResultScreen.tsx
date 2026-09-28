@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { GameScore, SongMetadata, DifficultyLevel } from '../types/game';
 import confetti from 'canvas-confetti';
-import { getStageUrl } from '../data/assets';
+import { getStageUrl, handleCoverError } from '../data/assets';
 import { StageBackdrop } from './StageBackdrop';
+import { TimingAnalysis } from './TimingAnalysis';
 import { RotateCcw, ListMusic, Share2, Check, Sparkles, Award } from 'lucide-react';
 
 interface ResultScreenProps {
@@ -12,6 +13,8 @@ interface ResultScreenProps {
   isNewRecord: boolean;
   onRetry: () => void;
   onSongSelect: () => void;
+  audioOffsetMs: number;
+  onApplyOffset: (offsetMs: number) => void;
 }
 
 const GRADE_COLORS: Record<string, { text: string; bg: string; border: string }> = {
@@ -32,6 +35,8 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   isNewRecord,
   onRetry,
   onSongSelect,
+  audioOffsetMs,
+  onApplyOffset,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -60,7 +65,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     <>
     <StageBackdrop imageUrl={getStageUrl(song)} />
     <div className="relative z-10 w-full max-w-3xl mx-auto px-4 py-6 flex-1 flex flex-col justify-center items-center">
-      <div className="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-8 backdrop-blur-md shadow-2xl space-y-4 sm:space-y-6">
+      <div className="w-full glass-panel rounded-2xl p-4 sm:p-8 space-y-4 sm:space-y-6">
         {/* Header Title & Stage */}
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 sm:gap-4 pb-4 sm:pb-6 border-b border-slate-800">
           <div className="flex items-center gap-4 text-center sm:text-left">
@@ -68,6 +73,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
               src={song.coverUrl}
               alt={song.title}
               referrerPolicy="no-referrer"
+              onError={handleCoverError}
               className="w-16 h-16 rounded-lg object-cover border border-slate-700 shadow-md shrink-0"
             />
             <div>
@@ -116,7 +122,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
               RANK
             </span>
             <div
-              className={`text-6xl sm:text-7xl font-black font-display tracking-wider ${gradeStyle.text} drop-shadow-md`}
+              className={`text-6xl sm:text-8xl font-black font-display tracking-wider ${['SSS', 'SS', 'S'].includes(score.grade) ? 'text-neon' : gradeStyle.text} drop-shadow-md`}
             >
               {score.grade}
             </div>
@@ -192,6 +198,10 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
             </span>
           </div>
         </div>
+
+        {score.timing && (
+          <TimingAnalysis timing={score.timing} currentOffsetMs={audioOffsetMs} onApplyOffset={onApplyOffset} />
+        )}
 
         {/* Bottom Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">

@@ -2,7 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SongMetadata, Note, DifficultyLevel, Beatmap } from '../types/game';
 import { soundEngine } from '../services/soundEngine';
 import { IMAGES } from '../data/assets';
+import type { SynthPatternId } from '../data/patterns';
 import { Play, Pause, Square, Save, X, Plus, Trash2, Music, Upload } from 'lucide-react';
+
+// Only the built-in synth arrangements can back a recorded chart ('custom'/'audio' are not selectable)
+const SYNTH_THEMES: { id: SynthPatternId; label: string }[] = [
+  { id: 'neon_velocity', label: 'Cyberpunk DnB (140 BPM)' },
+  { id: 'midnight_tokyo', label: 'Synthwave 80s (115 BPM)' },
+  { id: 'solar_overdrive', label: 'Speedcore Chiptune (160 BPM)' },
+  { id: 'starlight_lullaby', label: 'Lo-Fi Future (95 BPM)' },
+];
 
 interface BeatmapEditorModalProps {
   isOpen: boolean;
@@ -19,7 +28,7 @@ export const BeatmapEditorModal: React.FC<BeatmapEditorModalProps> = ({
   const [artist, setArtist] = useState('DJ Creator');
   const [bpm, setBpm] = useState(130);
   const [duration, setDuration] = useState(60);
-  const [patternId, setPatternId] = useState<'neon_velocity' | 'midnight_tokyo' | 'solar_overdrive' | 'starlight_lullaby'>('neon_velocity');
+  const [patternId, setPatternId] = useState<SynthPatternId>('neon_velocity');
   
   // Custom audio file state
   const [customAudioFile, setCustomAudioFile] = useState<File | null>(null);
@@ -169,7 +178,7 @@ export const BeatmapEditorModal: React.FC<BeatmapEditorModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-6">
+      <div className="w-full max-w-2xl glass-panel rounded-2xl p-5 sm:p-6 max-h-[90dvh] overflow-y-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div>
@@ -228,13 +237,17 @@ export const BeatmapEditorModal: React.FC<BeatmapEditorModalProps> = ({
             <select
               value={patternId}
               disabled={!!customAudioBuffer}
-              onChange={(e) => setPatternId(e.target.value as any)}
+              onChange={(e) => {
+                const theme = SYNTH_THEMES.find((t) => t.id === e.target.value);
+                if (theme) setPatternId(theme.id);
+              }}
               className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded text-white focus:border-cyan-500 focus:outline-none"
             >
-              <option value="neon_velocity">Cyberpunk DnB (140 BPM)</option>
-              <option value="midnight_tokyo">Synthwave 80s (115 BPM)</option>
-              <option value="solar_overdrive">Speedcore Chiptune (160 BPM)</option>
-              <option value="starlight_lullaby">Lo-Fi Future (95 BPM)</option>
+              {SYNTH_THEMES.map((theme) => (
+                <option key={theme.id} value={theme.id}>
+                  {theme.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

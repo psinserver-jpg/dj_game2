@@ -1,138 +1,79 @@
-import { SongMetadata, Beatmap, Note, DifficultyLevel } from '../types/game';
+import { SongMetadata } from '../types/game';
+import { buildBeatmaps, freqToBand, type Onset } from './chartBuilder';
+import { getPatternEvents, type SynthPatternId } from './patterns';
 import { cover, stage } from './assets';
 
-// Helper to generate musically synchronized rhythm charts
-function generateBeatmap(
-  bpm: number,
-  totalDuration: number,
-  difficulty: DifficultyLevel,
-  patternStyle: 'dnb' | 'synthwave' | 'chiptune' | 'lofi'
-): Beatmap {
-  const notes: Note[] = [];
-  const beatSec = 60 / bpm;
-  const startSec = 2.5; // Lead-in time for player readiness
-  const endSec = totalDuration - 2.5;
+// Charts for the built-in synth songs are generated from the same arrangement data the
+// sound engine plays (data/patterns.ts), so notes sit on real kicks, snares, melody and chords.
+function onsetsFromPattern(patternId: SynthPatternId, bpm: number, duration: number): Onset[] {
+  const stepSec = 60 / bpm / 4;
+  const onsets: Onset[] = [];
 
-  let noteId = 0;
-  const addNote = (lane: number, time: number, duration?: number) => {
-    notes.push({
-      id: `n_${difficulty}_${noteId++}`,
-      lane: Math.min(3, Math.max(0, Math.floor(lane))),
-      time: Number(time.toFixed(3)),
-      duration: duration ? Number(duration.toFixed(3)) : undefined,
-    });
-  };
+  for (let step = 0; step * stepSec < duration; step++) {
+    const events = getPatternEvents(patternId, step);
+    if (events.length === 0) continue;
 
-  const difficultyLevels: Record<DifficultyLevel, number> = {
-    EASY: patternStyle === 'lofi' ? 2 : patternStyle === 'synthwave' ? 3 : 4,
-    NORMAL: patternStyle === 'lofi' ? 5 : patternStyle === 'synthwave' ? 6 : 7,
-    HARD: patternStyle === 'lofi' ? 8 : patternStyle === 'synthwave' ? 9 : 10,
-    EXPERT: patternStyle === 'lofi' ? 10 : patternStyle === 'synthwave' ? 12 : 14,
-  };
+    let strength = 0;
+    let extra = 0;
+    let drumBand = 0.5;
+    let pitchBand: number | null = null;
+    let sustainSteps = 0;
+    const add = (v: number) => {
+      extra += Math.min(v, strength);
+      strength = Math.max(strength, v);
+    };
 
-  // Generate pattern loop
-  let currentSec = startSec;
-  let beatIndex = 0;
-
-  while (currentSec < endSec) {
-    const bar = Math.floor(beatIndex / 4);
-    const beatInBar = beatIndex % 4;
-
-    if (difficulty === 'EASY') {
-      // Main beats only (quarter notes or half notes)
-      if (beatInBar === 0 || beatInBar === 2) {
-        const lane = (bar * 2 + beatInBar / 2) % 4;
-        // Occasional hold on bar start
-        if (bar % 4 === 3 && beatInBar === 0) {
-          addNote(lane, currentSec, beatSec * 1.5);
-        } else {
-          addNote(lane, currentSec);
-        }
-      }
-    } else if (difficulty === 'NORMAL') {
-      // 8th note rhythms and syncopations
-      const lane = (beatIndex * 3) % 4;
-      addNote(lane, currentSec);
-
-      // Offbeat note on select beats
-      if (beatInBar === 1 || beatInBar === 3) {
-        const offLane = (lane + 2) % 4;
-        addNote(offLane, currentSec + beatSec * 0.5);
-      }
-
-      // Occasional hold notes
-      if (beatInBar === 2 && bar % 2 === 1) {
-        addNote((lane + 1) % 4, currentSec + beatSec * 0.5, beatSec * 1.2);
-      }
-    } else if (difficulty === 'HARD') {
-      // 8th notes + 16th stream bursts + simultaneous chords
-      const baseLane = beatIndex % 4;
-
-      if (beatInBar === 0) {
-        // Double tap on downbeat!
-        addNote(0, currentSec);
-        addNote(3, currentSec);
-      } else {
-        addNote(baseLane, currentSec);
-      }
-
-      // Syncopated 8th note
-      addNote((baseLane + 1) % 4, currentSec + beatSec * 0.5);
-
-      // 16th note rolls on climax sections (every 2nd bar)
-      if (bar % 2 === 1 && (beatInBar === 2 || beatInBar === 3)) {
-        addNote((baseLane + 2) % 4, currentSec + beatSec * 0.25);
-        addNote((baseLane + 3) % 4, currentSec + beatSec * 0.75);
-      }
-
-      // Sustained hold note with crossover tap
-      if (bar % 4 === 2 && beatInBar === 1) {
-        addNote(1, currentSec, beatSec * 1.8);
-      }
-    } else if (difficulty === 'EXPERT') {
-      // High density streams, multi-finger chords, fast polyrhythmic stairs
-      const stepLane = (beatIndex * 2) % 4;
-
-      // Double notes on beat 0 and 2
-      if (beatInBar === 0) {
-        addNote(0, currentSec);
-        addNote(2, currentSec);
-      } else if (beatInBar === 2) {
-        addNote(1, currentSec);
-        addNote(3, currentSec);
-      } else {
-        addNote(stepLane, currentSec);
-      }
-
-      // Fast 16th streams
-      const stairLanes = [0, 1, 2, 3, 2, 1];
-      const s1 = stairLanes[(beatIndex * 4) % stairLanes.length];
-      const s2 = stairLanes[(beatIndex * 4 + 1) % stairLanes.length];
-      const s3 = stairLanes[(beatIndex * 4 + 2) % stairLanes.length];
-
-      addNote(s1, currentSec + beatSec * 0.25);
-      addNote(s2, currentSec + beatSec * 0.5);
-      addNote(s3, currentSec + beatSec * 0.75);
-
-      // Long hold note along with stream
-      if (bar % 3 === 0 && beatInBar === 3) {
-        addNote((stepLane + 1) % 4, currentSec, beatSec * 1.6);
+    for (const ev of events) {
+      switch (ev.inst) {
+        case 'kick':
+          add(0.95 * ev.accent);
+          drumBand = 0.2;
+          break;
+        case 'snare':
+          add(0.9 * ev.accent);
+          drumBand = 0.6;
+          break;
+        case 'hat':
+          add(ev.open ? 0.22 : 0.12);
+          if (drumBand === 0.5) drumBand = 0.85;
+          break;
+        case 'bass':
+          add(0.3);
+          if (ev.steps >= 2) sustainSteps = Math.max(sustainSteps, ev.steps);
+          break;
+        case 'lead':
+          // A lead on every 16th (chiptune) would drown everything else out
+          add(ev.steps >= 1 ? 0.62 : 0.45);
+          pitchBand = freqToBand(ev.freq);
+          if (ev.steps >= 2) sustainSteps = Math.max(sustainSteps, ev.steps);
+          break;
+        case 'chord':
+          add(0.75);
+          pitchBand ??= freqToBand(ev.freqs.reduce((a, b) => a + b, 0) / ev.freqs.length);
+          sustainSteps = Math.max(sustainSteps, ev.steps);
+          break;
       }
     }
 
-    currentSec += beatSec;
-    beatIndex++;
+    onsets.push({
+      time: step * stepSec,
+      strength: Math.min(1.2, strength + extra * 0.15),
+      band: pitchBand === null ? drumBand : pitchBand * 0.7 + drumBand * 0.3,
+      sustain: sustainSteps * stepSec,
+    });
   }
+  return onsets;
+}
 
-  // Sort notes by time ascending
-  notes.sort((a, b) => a.time - b.time);
-
-  return {
-    difficulty,
-    level: difficultyLevels[difficulty],
-    notes,
-    noteCount: notes.length,
-  };
+function synthCharts(patternId: SynthPatternId, bpm: number, duration: number) {
+  return buildBeatmaps({
+    onsets: onsetsFromPattern(patternId, bpm, duration),
+    bpm,
+    duration,
+    seed: patternId,
+    leadIn: 2.5,
+    tailOut: 2.5,
+  });
 }
 
 export const INITIAL_SONGS: SongMetadata[] = [
@@ -148,12 +89,7 @@ export const INITIAL_SONGS: SongMetadata[] = [
     previewStart: 12,
     previewDuration: 10,
     musicPatternId: 'neon_velocity',
-    difficulties: {
-      EASY: generateBeatmap(140, 68, 'EASY', 'dnb'),
-      NORMAL: generateBeatmap(140, 68, 'NORMAL', 'dnb'),
-      HARD: generateBeatmap(140, 68, 'HARD', 'dnb'),
-      EXPERT: generateBeatmap(140, 68, 'EXPERT', 'dnb'),
-    },
+    difficulties: synthCharts('neon_velocity', 140, 68),
   },
   {
     id: 'midnight-tokyo',
@@ -167,12 +103,7 @@ export const INITIAL_SONGS: SongMetadata[] = [
     previewStart: 16,
     previewDuration: 10,
     musicPatternId: 'midnight_tokyo',
-    difficulties: {
-      EASY: generateBeatmap(115, 72, 'EASY', 'synthwave'),
-      NORMAL: generateBeatmap(115, 72, 'NORMAL', 'synthwave'),
-      HARD: generateBeatmap(115, 72, 'HARD', 'synthwave'),
-      EXPERT: generateBeatmap(115, 72, 'EXPERT', 'synthwave'),
-    },
+    difficulties: synthCharts('midnight_tokyo', 115, 72),
   },
   {
     id: 'solar-overdrive',
@@ -186,12 +117,7 @@ export const INITIAL_SONGS: SongMetadata[] = [
     previewStart: 15,
     previewDuration: 10,
     musicPatternId: 'solar_overdrive',
-    difficulties: {
-      EASY: generateBeatmap(160, 64, 'EASY', 'chiptune'),
-      NORMAL: generateBeatmap(160, 64, 'NORMAL', 'chiptune'),
-      HARD: generateBeatmap(160, 64, 'HARD', 'chiptune'),
-      EXPERT: generateBeatmap(160, 64, 'EXPERT', 'chiptune'),
-    },
+    difficulties: synthCharts('solar_overdrive', 160, 64),
   },
   {
     id: 'starlight-lullaby',
@@ -205,11 +131,6 @@ export const INITIAL_SONGS: SongMetadata[] = [
     previewStart: 14,
     previewDuration: 10,
     musicPatternId: 'starlight_lullaby',
-    difficulties: {
-      EASY: generateBeatmap(95, 70, 'EASY', 'lofi'),
-      NORMAL: generateBeatmap(95, 70, 'NORMAL', 'lofi'),
-      HARD: generateBeatmap(95, 70, 'HARD', 'lofi'),
-      EXPERT: generateBeatmap(95, 70, 'EXPERT', 'lofi'),
-    },
+    difficulties: synthCharts('starlight_lullaby', 95, 70),
   },
 ];

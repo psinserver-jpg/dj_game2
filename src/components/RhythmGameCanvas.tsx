@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
-import { Note, JudgmentType, GameSettings } from '../types/game';
+import { Note, JudgmentType, GameSettings, HitSample } from '../types/game';
+import { WINDOWS_MS } from '../services/timing';
 import { soundEngine } from '../services/soundEngine';
-import { IMAGES, getImage, isImageReady } from '../data/assets';
+import { IMAGES, getImage, getStageImage, isImageReady } from '../data/assets';
 
 interface Particle {
   x: number;
@@ -35,6 +36,7 @@ interface HitBurst {
 interface JudgmentAnimation {
   text: JudgmentType;
   fastSlow?: 'FAST' | 'SLOW';
+  offsetMs?: number;
   timestamp: number;
   lane: number;
 }
@@ -47,6 +49,7 @@ interface RhythmGameCanvasProps {
   combo: number;
   grooveGauge: number; // 0 to 100
   recentJudgment: JudgmentAnimation | null;
+  recentHits: HitSample[]; // for the timing bar under the judgment line
   backgroundUrl: string;
   onLanePress?: (lane: number) => void;
   onLaneRelease?: (lane: number) => void;
@@ -54,6 +57,9 @@ interface RhythmGameCanvasProps {
 
 // Lanes alternate cyan / pink, matching LANE_COLORS.
 const NOTE_SPRITES = [IMAGES.noteCyan, IMAGES.notePink, IMAGES.noteCyan, IMAGES.notePink];
+const PERFECT_MS = WINDOWS_MS.PERFECT;
+const GREAT_MS = WINDOWS_MS.GREAT;
+const GOOD_MS = WINDOWS_MS.GOOD;
 const HIT_BURST_DURATION = 0.32; // seconds
 
 const LANE_COLORS = [
@@ -71,6 +77,7 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
   combo,
   grooveGauge,
   recentJudgment,
+  recentHits,
   backgroundUrl,
   onLanePress,
   onLaneRelease,
@@ -155,7 +162,7 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
 
     const render = () => {
       // Handle high-DPI
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2); // cap for phone GPUs
       const displayWidth = canvas.clientWidth;
       const displayHeight = canvas.clientHeight;
 
@@ -177,7 +184,7 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
       ctx.fillStyle = '#080b12';
       ctx.fillRect(0, 0, width, height);
 
-      const bg = getImage(backgroundUrl);
+      const bg = getStageImage(backgroundUrl);
       if (isImageReady(bg)) {
         const scale =
           Math.max(width / bg.naturalWidth, height / bg.naturalHeight) * (1.03 + avgBass * 0.025);
@@ -227,8 +234,8 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
 
       // Highway gradient
       const roadGrad = ctx.createLinearGradient(0, topY, 0, height);
-      roadGrad.addColorStop(0, 'rgba(15, 23, 42, 0.4)');
-      roadGrad.addColorStop(1, 'rgba(10, 15, 30, 0.95)');
+      roadGrad.addColorStop(0, 'rgba(15, 23, 42, 0.12)'); // see-through so the stage art shows
+      roadGrad.addColorStop(1, 'rgba(10, 15, 30, 0.42)');
       ctx.fillStyle = roadGrad;
       ctx.fill();
 
@@ -291,7 +298,9 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
           beamGrad.addColorStop(0.7, LANE_COLORS[l].glow);
           beamGrad.addColorStop(1, LANE_COLORS[l].primary);
           ctx.fillStyle = beamGrad;
+          ctx.globalAlpha = 0.4; // translucent so the stage art stays visible while holding keys
           ctx.fill();
+          ctx.globalAlpha = 1;
         }
       }
 
@@ -606,16 +615,67 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
           ctx.shadowBlur = 14;
           ctx.fillText(recentJudgment.text, width / 2, judgeY);
 
-          // Fast / Slow indicator
-          if (settings.showFastSlow && recentJudgment.fastSlow && recentJudgment.text !== 'PERFECT') {
+          // Fast / Slow indicator with the exact offset in ms
+          if (settings.showFastSlow && recentJudgment.offsetMs !== undefined) {
+            const ms = recentJudgment.offsetMs;
+            const label = recentJudgment.fastSlow
+              ? `${recentJudgment.fastSlow} ${ms > 0 ? '+' : ''}${ms}ms`
+              : `${ms > 0 ? '+' : ''}${ms}ms`;
             ctx.font = '600 12px "JetBrains Mono", monospace';
-            ctx.fillStyle = recentJudgment.fastSlow === 'FAST' ? '#60A5FA' : '#FB923C';
+            ctx.fillStyle = !recentJudgment.fastSlow ? 'rgba(255,255,255,0.55)' : recentJudgment.fastSlow === 'FAST' ? '#60A5FA' : '#FB923C';
             ctx.shadowBlur = 0;
-            ctx.fillText(recentJudgment.fastSlow, width / 2, judgeY + 18);
+            ctx.fillText(label, width / 2, judgeY + 18);
           }
 
           ctx.restore();
         }
+      }
+
+      // 15. Timing bar: where the recent hits landed (left = early, right = late)
+      if (recentHits.length) {
+        const nowMs = performance.now();
+        const barW = Math.min(220, width * 0.5);
+        const barX = (width - barW) / 2;
+        const barY = Math.min(height - 10, receptorY + 44);
+        const toX = (ms: number) => barX + barW / 2 + (Math.max(-GOOD_MS, Math.min(GOOD_MS, ms)) / GOOD_MS) * (barW / 2);
+        ctx.save();
+        const zone = (ms: number, color: string) => {
+          ctx.fillStyle = color;
+          ctx.fillRect(toX(-ms), barY - 3, toX(ms) - toX(-ms), 6);
+        };
+        zone(GOOD_MS, 'rgba(251, 191, 36, 0.28)');
+        zone(GREAT_MS, 'rgba(52, 211, 153, 0.32)');
+        zone(PERFECT_MS, 'rgba(56, 189, 248, 0.4)');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(barX + barW / 2 - 1, barY - 8, 2, 16);
+
+        const colors: Record<string, string> = { PERFECT: '#7DD3FC', GREAT: '#6EE7B7', GOOD: '#FCD34D', MISS: '#FB7185' };
+        const live = recentHits.filter((h) => nowMs - h.at < 6000);
+        for (const h of live) {
+          ctx.globalAlpha = Math.max(0.15, 1 - (nowMs - h.at) / 6000);
+          ctx.fillStyle = colors[h.judgment] ?? '#FFFFFF';
+          ctx.fillRect(toX(h.offsetMs) - 1, barY - 7, 2, 14);
+        }
+        if (live.length >= 3) {
+          const mean = live.reduce((a, h) => a + h.offsetMs, 0) / live.length;
+          const mx = toX(mean);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.moveTo(mx, barY - 10);
+          ctx.lineTo(mx - 5, barY - 16);
+          ctx.lineTo(mx + 5, barY - 16);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.globalAlpha = 0.6;
+        ctx.font = '600 10px "Pretendard", sans-serif';
+        ctx.fillStyle = '#CBD5E1';
+        ctx.textAlign = 'right';
+        ctx.fillText('빠름', barX - 6, barY + 4);
+        ctx.textAlign = 'left';
+        ctx.fillText('느림', barX + barW + 6, barY + 4);
+        ctx.restore();
       }
 
       ctx.restore(); // Final restore
@@ -626,50 +686,64 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [notes, currentSongTime, settings, activeLanes, combo, grooveGauge, recentJudgment, backgroundUrl]);
+  }, [notes, currentSongTime, settings, activeLanes, combo, grooveGauge, recentJudgment, recentHits, backgroundUrl]);
 
-  // Touch handlers for on-screen play on mobile / tablets
-  const handleTouch = (e: React.TouchEvent) => {
-    if (!canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
+  // Touch / pointer play: the lower part of the screen is split into the 4 lanes (full width, so
+  // edge touches still count). Multi-touch, and sliding a finger moves it to the next lane.
+  const pointerLanesRef = useRef(new Map<number, number>());
+  const laneAt = (clientX: number, clientY: number): number | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    if (clientY - rect.top < rect.height * 0.45) return null;
     const width = rect.width;
     const highwayWidth = Math.min(width * 0.9, 440);
     const highwayLeft = (width - highwayWidth) / 2;
-    const laneW = highwayWidth / 4;
+    const lane = Math.floor((clientX - rect.left - highwayLeft) / (highwayWidth / 4));
+    return Math.min(3, Math.max(0, lane));
+  };
+  const laneHeld = (lane: number, exceptId: number) =>
+    [...pointerLanesRef.current.entries()].some(([id, l]) => id !== exceptId && l === lane);
 
-    const touches = Array.from(e.touches);
-    const pressedLanes = [false, false, false, false];
-
-    touches.forEach((touch) => {
-      const clientX = touch.clientX - rect.left;
-      const clientY = touch.clientY - rect.top;
-
-      // Only respond if touch is in the lower half of screen
-      if (clientY > rect.height * 0.5) {
-        const lane = Math.floor((clientX - highwayLeft) / laneW);
-        if (lane >= 0 && lane < 4) {
-          pressedLanes[lane] = true;
-        }
-      }
-    });
-
-    for (let l = 0; l < 4; l++) {
-      if (pressedLanes[l] && !activeLanes[l]) {
-        onLanePress?.(l);
-      } else if (!pressedLanes[l] && activeLanes[l]) {
-        onLaneRelease?.(l);
-      }
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const lane = laneAt(e.clientX, e.clientY);
+    if (lane === null) return;
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId); // keep receiving moves/ups for this finger
+    } catch {
+      // unknown pointer id (synthetic events, some browsers) - input still works without capture
     }
+    const already = laneHeld(lane, e.pointerId);
+    pointerLanesRef.current.set(e.pointerId, lane);
+    if (!already) onLanePress?.(lane);
+  };
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const prev = pointerLanesRef.current.get(e.pointerId);
+    if (prev === undefined) return;
+    const lane = laneAt(e.clientX, e.clientY);
+    if (lane === null || lane === prev) return;
+    pointerLanesRef.current.set(e.pointerId, lane);
+    if (!laneHeld(prev, e.pointerId)) onLaneRelease?.(prev);
+    if (!laneHeld(lane, e.pointerId)) onLanePress?.(lane);
+  };
+  const handlePointerEnd = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const lane = pointerLanesRef.current.get(e.pointerId);
+    if (lane === undefined) return;
+    pointerLanesRef.current.delete(e.pointerId);
+    if (!laneHeld(lane, e.pointerId)) onLaneRelease?.(lane);
   };
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
       <canvas
         ref={canvasRef}
-        className="w-full h-full touch-none"
-        onTouchStart={handleTouch}
-        onTouchMove={handleTouch}
-        onTouchEnd={handleTouch}
+        className="w-full h-full touch-none select-none"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        onContextMenu={(e) => e.preventDefault()}
       />
     </div>
   );

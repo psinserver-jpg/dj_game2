@@ -2,7 +2,7 @@
  * PulseBeat - Cyber Rhythm Arcade Application
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   GameView,
   SongMetadata,
@@ -11,11 +11,14 @@ import {
   JudgmentType,
   GameScore,
   GameSettings,
+  HitSample,
 } from './types/game';
+import { computeTimingStats } from './services/timing';
 import { INITIAL_SONGS } from './data/songs';
 import { IMAGES, getImage, getStageUrl } from './data/assets';
 import { soundEngine } from './services/soundEngine';
 import { storageService, DEFAULT_SETTINGS } from './services/storageService';
+import { loadGeneratedSongs } from './services/musicLibrary';
 
 import { Navbar } from './components/Navbar';
 import { TitleScreen } from './components/TitleScreen';
@@ -40,9 +43,27 @@ export default function App() {
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
 
   // Songs & Selection
-  const [allSongs, setAllSongs] = useState<SongMetadata[]>(INITIAL_SONGS);
+  const [customSongs, setCustomSongs] = useState<SongMetadata[]>([]);
+  const [generatedSongs, setGeneratedSongs] = useState<SongMetadata[]>([]);
+  const allSongs = useMemo(() => {
+    // Custom > generated > built-in; the first song with a given id wins so list keys stay unique
+    const seen = new Set<string>();
+    return [...customSongs, ...generatedSongs, ...INITIAL_SONGS].filter((song) => {
+      if (seen.has(song.id)) return false;
+      seen.add(song.id);
+      return true;
+    });
+  }, [customSongs, generatedSongs]);
   const [selectedSong, setSelectedSong] = useState<SongMetadata>(INITIAL_SONGS[0]);
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>('NORMAL');
+  const hasPickedSongRef = useRef(false);
+
+  // Generated tracks are fetched + decoded before a run can start
+  const [isLoadingSong, setIsLoadingSong] = useState(false);
+  const isLoadingSongRef = useRef(false);
+  const startRequestRef = useRef(0); // bumped when a pending start should be abandoned
+  const selectedDifficultyRef = useRef(selectedDifficulty);
+  selectedDifficultyRef.current = selectedDifficulty;
 
   // Active Game State
   const [activeNotes, setActiveNotes] = useState<Note[]>([]);
@@ -55,6 +76,7 @@ export default function App() {
   const [recentJudgment, setRecentJudgment] = useState<{
     text: JudgmentType;
     fastSlow?: 'FAST' | 'SLOW';
+    offsetMs?: number;
     timestamp: number;
     lane: number;
   } | null>(null);
@@ -66,6 +88,10 @@ export default function App() {
     good: 0,
     miss: 0,
   });
+  // Signed hit offsets of this play (ms, negative = early) and the last few for the timing bar
+  const hitOffsetsRef = useRef<number[]>([]);
+  const [recentHits, setRecentHits] = useState<HitSample[]>([]);
+
   const timingDistRef = useRef({
     fast: 0,
     slow: 0,
@@ -83,23 +109,87 @@ export default function App() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
+  // Mobile browsers only start audio after a user gesture: resume the context on the first touch/key
+  useEffect(() => {
+    const unlock = () => soundEngine.init();
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
+  // Leaving the tab / app (phone call, home button) pauses the song instead of letting it run on
+  useEffect(() => {
+    if (currentView !== 'PLAYING' || isPaused) return;
+    const onHide = () => {
+      if (document.hidden) {
+        soundEngine.pause();
+        setIsPaused(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [currentView, isPaused]);
+
   // Warm the image cache so gameplay sprites and the stage backdrop draw from the first frame
   useEffect(() => {
-    [IMAGES.noteCyan, IMAGES.notePink, IMAGES.hitBurst].forEach(getImage);
+    // title-bg is the stand-in when a song's stage art is missing
+    [IMAGES.noteCyan, IMAGES.notePink, IMAGES.hitBurst, IMAGES.titleBackground].forEach(getImage);
   }, []);
   useEffect(() => {
     getImage(getStageUrl(selectedSong));
   }, [selectedSong]);
 
-  // Load saved settings & custom songs on mount
+  // Load saved settings, custom songs & generated songs on mount
   useEffect(() => {
     const savedSettings = storageService.getSettings();
     setSettings(savedSettings);
+    setCustomSongs(storageService.getCustomSongs());
 
-    const customSongs = storageService.getCustomSongs();
-    if (customSongs.length > 0) {
-      setAllSongs([...customSongs, ...INITIAL_SONGS]);
-    }
+    let cancelled = false;
+    loadGeneratedSongs().then((generated) => {
+      if (cancelled || generated.length === 0) return;
+      setGeneratedSongs(generated);
+      // Open on the first generated song unless the player already chose something
+      if (!hasPickedSongRef.current) setSelectedSong(generated[0]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Keep the engine on the saved volumes (it keeps them until the AudioContext exists)
+  useEffect(() => {
+    soundEngine.setVolumes(settings.musicVolume, settings.sfxVolume);
+  }, [settings.musicVolume, settings.sfxVolume]);
+
+  // Start fetching/decoding the selected generated track so the run can begin right away.
+  // The short delay skips songs the player only scrolls past (each decode is ~40 MB of PCM).
+  useEffect(() => {
+    const url = selectedSong.audioUrl;
+    if (!url) return;
+    const timer = window.setTimeout(() => {
+      soundEngine.loadAudio(url).catch((err) => {
+        console.warn(`[App] Could not preload ${url}:`, err);
+      });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [selectedSong.audioUrl]);
+
+  // Changing the song, leaving the screen or opening a modal abandons a start that is still
+  // waiting for audio (otherwise the run would begin hidden behind the modal).
+  // The load itself keeps going, so starting again later uses the cached track.
+  useEffect(() => {
+    startRequestRef.current++;
+    isLoadingSongRef.current = false;
+    setIsLoadingSong(false);
+  }, [selectedSong, currentView, isSettingsOpen, isHowToPlayOpen]);
+
+  const handleSelectSong = useCallback((song: SongMetadata) => {
+    hasPickedSongRef.current = true;
+    setSelectedSong(song);
   }, []);
 
   const handleSaveSettings = (newSettings: GameSettings) => {
@@ -108,11 +198,8 @@ export default function App() {
   };
 
   // --- Start Game ---
-  const handleStartGame = useCallback(() => {
-    soundEngine.init();
-    soundEngine.stopPreview();
-
-    const chart = selectedSong.difficulties[selectedDifficulty];
+  const beginPlay = useCallback((song: SongMetadata, difficulty: DifficultyLevel, audio?: AudioBuffer) => {
+    const chart = song.difficulties[difficulty];
     // Deep copy notes so mutation doesn't affect source beatmap
     const freshNotes: Note[] = chart.notes.map((n) => ({
       ...n,
@@ -128,6 +215,8 @@ export default function App() {
     // Reset scores & gauges
     judgmentCountsRef.current = { perfect: 0, great: 0, good: 0, miss: 0 };
     timingDistRef.current = { fast: 0, slow: 0 };
+    hitOffsetsRef.current = [];
+    setRecentHits([]);
     setCombo(0);
     setMaxCombo(0);
     setScore(0);
@@ -139,19 +228,53 @@ export default function App() {
     setCurrentView('PLAYING');
     isPlayingRef.current = true;
 
-    // Start synthesized track
-    soundEngine.startSong(
-      selectedSong.musicPatternId,
-      selectedSong.bpm,
-      selectedSong.duration,
-      0
-    );
-  }, [selectedSong, selectedDifficulty]);
+    // Start the generated track, or the synthesized arrangement when there is no buffer
+    soundEngine.startSong(song.musicPatternId, song.bpm, song.duration, 0, audio);
+  }, []);
+
+  const handleStartGame = useCallback(async () => {
+    if (isLoadingSongRef.current) return; // already waiting for this song's audio
+    soundEngine.init(); // inside the click/key gesture, so the AudioContext may start
+    soundEngine.stopPreview();
+
+    const song = selectedSong;
+    hasPickedSongRef.current = true; // never swap the song under a run that is starting
+    if (!song.audioUrl) {
+      beginPlay(song, selectedDifficultyRef.current);
+      return;
+    }
+
+    const cached = soundEngine.getLoadedAudio(song.audioUrl);
+    if (cached) {
+      beginPlay(song, selectedDifficultyRef.current, cached);
+      return;
+    }
+
+    const request = ++startRequestRef.current;
+    isLoadingSongRef.current = true;
+    setIsLoadingSong(true);
+    let audio: AudioBuffer | null = null;
+    try {
+      audio = await soundEngine.loadAudio(song.audioUrl);
+    } catch (err) {
+      console.warn(`[App] Could not load ${song.audioUrl}:`, err);
+    }
+    if (request !== startRequestRef.current) return; // song changed or player navigated away
+
+    isLoadingSongRef.current = false;
+    setIsLoadingSong(false);
+    if (!audio) {
+      alert('음원을 불러오지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해 주세요.');
+      return;
+    }
+    // Difficulty may have been changed while loading; use the latest pick
+    beginPlay(song, selectedDifficultyRef.current, audio);
+  }, [selectedSong, beginPlay]);
 
   // --- End Game & Calculate Results ---
   const handleEndGame = useCallback(() => {
     isPlayingRef.current = false;
-    soundEngine.stop();
+    soundEngine.fadeOutAndStop();
 
     const counts = judgmentCountsRef.current;
     const totalNotes = selectedSong.difficulties[selectedDifficulty].noteCount;
@@ -190,6 +313,7 @@ export default function App() {
       maxCombo,
       counts: { ...counts },
       timingDistribution: { ...timingDistRef.current },
+      timing: computeTimingStats(hitOffsetsRef.current, settingsRef.current.audioOffsetMs),
       grade,
       isFullCombo,
       isAllPerfect,
@@ -219,8 +343,9 @@ export default function App() {
         soundEngine.playHitSound(lane);
       }
 
-      // Find nearest unjudged note in this lane
-      const currentTime = currentSongTimeRef.current;
+      // Find nearest unjudged note in this lane. Read the audio clock now instead of the value
+      // from the last animation frame, which can be up to a frame (~16 ms) old.
+      const currentTime = Math.max(0, soundEngine.getCurrentTime() - settingsRef.current.audioOffsetMs / 1000);
       const notes = activeNotesRef.current;
 
       let closestNote: Note | null = null;
@@ -289,10 +414,16 @@ export default function App() {
           closestNote.judgment = judgment;
         }
 
+        const offsetMs = Math.round(-minDelta * 1000);
+        hitOffsetsRef.current.push(offsetMs);
+        const now = performance.now();
+        setRecentHits((prev) => [...prev.slice(-24), { offsetMs, judgment, at: now }]);
+
         setRecentJudgment({
           text: judgment,
           fastSlow,
-          timestamp: performance.now(),
+          offsetMs,
+          timestamp: now,
           lane,
         });
       }
@@ -410,10 +541,12 @@ export default function App() {
 
       const notes = activeNotesRef.current;
       let hasUnjudged = false;
+      let lastNoteEnd = 0; // includes hold tails
 
       // 1. Process Missed Notes & Active Holds
       for (let i = 0; i < notes.length; i++) {
         const note = notes[i];
+        lastNoteEnd = Math.max(lastNoteEnd, note.time + (note.duration ?? 0));
 
         if (!note.judged) {
           hasUnjudged = true;
@@ -446,9 +579,15 @@ export default function App() {
         }
       }
 
-      // 2. Check song completion condition
-      const songDuration = selectedSong.duration;
-      if (accurateTime >= songDuration || (!hasUnjudged && accurateTime > 10 && accurateTime >= notes[notes.length - 1]?.time + 2.0)) {
+      // 2. Check song completion condition. Generated tracks play out to their real end (the
+      // chart already leaves out a silent tail); looping synth songs stop 2s after the last note.
+      const isOverEarly =
+        !selectedSong.audioUrl &&
+        notes.length > 0 &&
+        !hasUnjudged &&
+        accurateTime > 10 &&
+        accurateTime >= lastNoteEnd + 2.0;
+      if (accurateTime >= selectedSong.duration || isOverEarly) {
         handleEndGame();
         return;
       }
@@ -480,17 +619,16 @@ export default function App() {
   // Custom song saving
   const handleSaveCustomSong = (newSong: SongMetadata) => {
     storageService.saveCustomSong(newSong);
-    setAllSongs([newSong, ...allSongs.filter((s) => s.id !== newSong.id)]);
-    setSelectedSong(newSong);
+    setCustomSongs((prev) => [newSong, ...prev.filter((s) => s.id !== newSong.id)]);
+    handleSelectSong(newSong);
     setCurrentView('SONG_SELECT');
   };
 
   const handleDeleteCustomSong = (id: string) => {
     storageService.deleteCustomSong(id);
-    const filtered = allSongs.filter((s) => s.id !== id);
-    setAllSongs(filtered);
+    setCustomSongs((prev) => prev.filter((s) => s.id !== id));
     if (selectedSong.id === id) {
-      setSelectedSong(filtered[0] || INITIAL_SONGS[0]);
+      handleSelectSong(allSongs.find((s) => s.id !== id) || INITIAL_SONGS[0]);
     }
   };
 
@@ -526,13 +664,14 @@ export default function App() {
             selectedSong={selectedSong}
             selectedDifficulty={selectedDifficulty}
             settings={settings}
-            onSelectSong={setSelectedSong}
+            onSelectSong={handleSelectSong}
             onSelectDifficulty={setSelectedDifficulty}
             onChangeSpeed={(speed) => handleSaveSettings({ ...settings, scrollSpeed: speed })}
             onStartGame={handleStartGame}
             onOpenEditor={() => setCurrentView('BEATMAP_EDITOR')}
             onDeleteCustomSong={handleDeleteCustomSong}
             keyboardEnabled={!isModalOpen}
+            isLoading={isLoadingSong}
           />
         )}
 
@@ -544,15 +683,18 @@ export default function App() {
               difficulty={selectedDifficulty}
               score={score}
               accuracy={currentAccuracy}
+              counts={judgmentCountsRef.current}
+              meanOffsetMs={
+                hitOffsetsRef.current.length
+                  ? hitOffsetsRef.current.reduce((a, b) => a + b, 0) / hitOffsetsRef.current.length
+                  : null
+              }
               grooveGauge={grooveGauge}
-              keyBindings={settings.keyBindings}
-              activeLanes={activeLanes}
+              progress={selectedSong.duration > 0 ? currentSongTime / selectedSong.duration : 0}
               onPause={() => {
                 soundEngine.pause();
                 setIsPaused(true);
               }}
-              onLanePress={handleLanePress}
-              onLaneRelease={handleLaneRelease}
             />
 
             {/* Canvas Highway */}
@@ -564,6 +706,7 @@ export default function App() {
               combo={combo}
               grooveGauge={grooveGauge}
               recentJudgment={recentJudgment}
+              recentHits={recentHits}
               backgroundUrl={getStageUrl(selectedSong)}
               onLanePress={handleLanePress}
               onLaneRelease={handleLaneRelease}
@@ -579,6 +722,8 @@ export default function App() {
             isNewRecord={isNewRecord}
             onRetry={handleStartGame}
             onSongSelect={() => setCurrentView('SONG_SELECT')}
+            audioOffsetMs={settings.audioOffsetMs}
+            onApplyOffset={(offset) => handleSaveSettings({ ...settings, audioOffsetMs: offset })}
           />
         )}
 

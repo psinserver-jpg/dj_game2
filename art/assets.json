@@ -32,6 +32,54 @@
       "brief": "Square generic cover art used for player-made custom charts. A glowing holographic vinyl record floating above a DJ turntable in a dark studio, the record's grooves lit in cyan and pink light rings, abstract sound waves around it, clean centered composition."
     },
     {
+      "id": "cover-letters-to-a-sleeping-server",
+      "out": "raw/covers/letters-to-a-sleeping-server.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Letters to a Sleeping Server' by Amaoto Archive, Emotional Piano Breaks at 92 BPM. Square glossy anime key-visual illustration: a quiet anime boy with soft silver hair and a long dark coat plays a grand piano inside an abandoned server room overgrown with softly glowing moss; rain falls through a broken skylight, blank paper letters float in the air among tiny data fireflies, rows of server racks blink faintly like sleeping eyes, warm lamplight on his face, melancholic but hopeful. Deep navy #080b12 base with soft teal, warm amber and moonlight-blue accents, gentle bloom and glossy highlights. No text, no writing on the letters, no logos. Palette leans deep navy #080b12 base, soft teal #5fd1c9, warm amber #ffb86b, moonlight blue #cfd8ff."
+    },
+    {
+      "id": "cover-mirrorball-protocol",
+      "out": "raw/covers/mirrorball-protocol.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Mirrorball Protocol' by Soul Relay 88, Nu-Disco Funk House at 124 BPM. Square glossy anime key-visual illustration: a stylish android woman DJ in a champagne-gold tailored suit with chrome forearm plating spins a giant mirror ball made of circuit-board tiles on one fingertip inside a retro-futuristic disco lounge at night, fracturing violet and gold light beams across velvet booths, a glossy checkered dance floor and walls of vinyl records; brass instruments and vinyl records float around her, rose-pink rim light, glossy reflections and sparkles, cool confident smile. An enclosed interior with no windows and no city skyline. Deep navy #080b12 base with champagne gold, disco violet and rose pink accents. No text, no letters, no logos. Palette leans deep navy #080b12 base, champagne gold #ffcf5a, disco violet #9b5cff, rose pink #ff7ab6."
+    },
+    {
+      "id": "cover-kitsunebi-dynamo",
+      "out": "raw/covers/kitsunebi-dynamo.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for '狐火ダイナモ' by KAGURA-REACTOR, Wa-fu Psytrance at 140 BPM. Square glossy anime key-visual illustration: a fox-eared shrine-maiden spirit with a fox mask tilted on her head raises glowing drumsticks above a massive taiko drum wired with cables and neon circuit lines like a humming generator, ghostly blue fox-fire orbs orbiting her, vermilion torii gates with blank plaques rising into a cyberpunk night sky, paper-charm streamers and sparks in the air, fierce festive grin. Deep navy #080b12 base with vermilion, ghostly fox-fire blue and gold accents. No text, no letters, no kanji, no writing on objects, no logos. Palette leans deep navy #080b12 base, torii vermilion #ff4b2b, fox-fire blue #3bf5ff, festival gold #ffc247."
+    },
+    {
+      "id": "cover-wataame-satellite",
+      "out": "raw/covers/wataame-satellite.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'わたあめサテライト' by Cotton Orbit feat. Yuzuha, Kawaii Future Bass at 150 BPM. Square glossy anime key-visual illustration: a cheerful, gentle girl in a pastel space-mechanic jumpsuit with a chunky headset and microphone clings with one arm to the antenna mast of a fluffy cotton-candy satellite in orbit, her other hand holding out a glowing heart-shaped signal that ripples outward as pastel radio rings; far below, the curved night side of a planet glitters with the lights of a sleeping city, star sprinkles and a few tiny floating tools drift around her, soft rim lighting, dreamy and a little lonely. Deep navy #080b12 base with pastel pink, lavender and mint neon accents. No clouds. No text, no letters, no patches with writing, no logos. Palette leans deep navy #080b12 base, pastel pink #ffb3d9, lavender #b9a6ff, mint #8ff0d0."
+    },
+    {
+      "id": "cover-ryusei-brakeless",
+      "out": "raw/covers/ryusei-brakeless.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for '流星ブレーキレス' by TURBO AURORA, Hyper Eurobeat at 158 BPM. Square glossy anime key-visual illustration from a high, dramatic three-quarter aerial angle: a futuristic open-top sports car drifts through a tight hairpin curve on a winding mountain pass at night under a blazing meteor shower; a determined young man with windswept silver hair and a crimson racing jacket grips the wheel while a girl in the passenger seat reaches up toward the falling meteors; crimson tail-light trails sweep around the hairpin, guardrails glint, dark pine-covered ridges surround the road and the faint glow of a distant city sits far below in the valley, chrome reflections and motion blur on the car. Deep navy #080b12 base with tail-light crimson, meteor blue and chrome silver accents. No highway, no city streets. No text, no letters, no license plates, no road signs with writing, no logos. Palette leans deep navy #080b12 base, tail-light crimson #ff2e4d, meteor blue #2e7bff, chrome silver #cfd8e6."
+    },
+    {
+      "id": "cover-noise-cancel-heart",
+      "out": "raw/covers/noise-cancel-heart.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'ノイズキャンセル・ハート' by Stray Amplifier, Girls-Band J-Rock at 172 BPM. Square glossy anime key-visual illustration: an energetic girl guitarist leaps mid-strum on a small rooftop stage at night, electric guitar raised high, her bandmates silhouetted behind her (drummer, bassist, keyboardist), a pair of headphones snapping apart beside her and bursting into light, electric-blue sound waves and tangerine amp glow filling the air, neon city below, dynamic perspective. Deep navy #080b12 base with electric blue, spotlight white and tangerine accents. Defiant, hopeful mood. No text, no letters, no brand marks on instruments, no logos. Palette leans deep navy #080b12 base, electric blue #3aa0ff, tangerine #ff8a3d, spotlight white #f4f7ff."
+    },
+    {
+      "id": "cover-glitter-bug-parade",
+      "out": "raw/covers/glitter-bug-parade.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Glitter Bug Parade!!' by PRISM*RAVE feat. Kururi Amane, Kawaii J-core at 184 BPM. Square glossy anime key-visual illustration: a cheerful girl with pastel pink twin tails and cat-ear headphones conducts a parade of cute glowing pixel bugs (ladybugs, butterflies and fireflies built from pixels) spilling out of a cracked holographic screen, star-shaped glitch sparks, confetti and candy-colored glitch blocks swirling around her, playful wink. Deep navy #080b12 base with hot pink, cyan and lemon-yellow neon accents. No text, no letters, no UI writing, no logos. Palette leans deep navy #080b12 base, hot pink #ff4fb8, cyan #3df2ff, lemon #ffe45c."
+    },
+    {
+      "id": "cover-zero-day-coronation",
+      "out": "raw/covers/zero-day-coronation.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'ZERO-DAY CORONATION' by Cantor Omega, Symphonic Artcore at 196 BPM. Square glossy anime key-visual illustration, dark and grand: an armored machine empress seated on a towering throne built from black server racks and cathedral organ pipes, a floating crimson crown assembled from shattered light shards hovering above her head, a lone small challenger silhouette with a glowing blade facing her from below, ultraviolet and blood-red neon rim light, broken stained-glass windows and concentric halo rings behind her, sparks and data-dust particles in a deep navy-black #080b12 void. Accents of blood crimson, ultraviolet and dark gold. No text, no letters, no readable code or glyphs, no logos. Palette leans deep navy-black #080b12 base, blood crimson #ff1f3d, ultraviolet #7a1fff, dark gold #c9a227."
+    },
+    {
       "id": "stage-neon-velocity",
       "out": "raw/stages/neon-velocity.png",
       "size": "1536x1024",
@@ -54,6 +102,54 @@
       "out": "raw/stages/starlight-lullaby.png",
       "size": "1536x1024",
       "brief": "Wide landscape gameplay backdrop for the stage 'Starlight Lullaby'. A tranquil night sky above a sea of clouds, a soft teal and pink aurora, thousands of stars, floating glass islands with tiny glowing lanterns on the left and right edges. Keep the central vertical third darker and calmer because the game's note lane is drawn on top. No characters."
+    },
+    {
+      "id": "stage-letters-to-a-sleeping-server",
+      "out": "raw/stages/letters-to-a-sleeping-server.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Letters to a Sleeping Server'. Wide 3:2 gameplay backdrop of a dim, rain-soaked server library at night: rows of sleeping server racks with faint amber status lights, floating blank letters and drifting light particles concentrated on the left and right thirds, moss glowing softly along the shelves. The central vertical third is a calm, dark aisle fading into deep navy #080b12 with only gentle, low-contrast rain streaks, uncluttered for the note lane. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12 base, soft teal #5fd1c9, warm amber #ffb86b, moonlight blue #cfd8ff."
+    },
+    {
+      "id": "stage-mirrorball-protocol",
+      "out": "raw/stages/mirrorball-protocol.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Mirrorball Protocol'. Wide 3:2 gameplay backdrop of a retro-future disco lounge interior at night: a huge circuit-tile mirror ball hangs in the top-left corner, and its gold and violet light beams fan outward and down along the left edge, with reflected glints scattered on the far right wall; no beams cross the center. Glinting brass instruments, speaker stacks and walls of vinyl records are concentrated in the left and right thirds. The central vertical third is a dark, softly lit dance floor receding into calm deep navy #080b12 shadow with only faint scattered sparkles and no bright objects, clear for the note lane. An enclosed interior with no windows. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12 base, champagne gold #ffcf5a, disco violet #9b5cff, rose pink #ff7ab6."
+    },
+    {
+      "id": "stage-kitsunebi-dynamo",
+      "out": "raw/stages/kitsunebi-dynamo.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage '狐火ダイナモ'. Wide 3:2 gameplay backdrop of a neon shrine festival at night in a cyber city: vermilion torii gates seen from the side stand in rows only along the far left and right edges, and glowing paper lanterns line the left and right thirds; no torii spans or crosses the central path. Blue fox-fire orbs drift at the sides, taiko drums sit on distant side stages. The central vertical third is a darker stone path fading into calm navy #080b12 mist with minimal detail, clear for the note lane. No characters in the center. Glossy anime background art, no text, blank plaques, no writing on torii or lanterns. Palette leans deep navy #080b12 base, torii vermilion #ff4b2b, fox-fire blue #3bf5ff, festival gold #ffc247."
+    },
+    {
+      "id": "stage-wataame-satellite",
+      "out": "raw/stages/wataame-satellite.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'わたあめサテライト'. Wide 3:2 gameplay backdrop of an orbital view high above a planet at night: the dark night-side curve of the planet sweeps in only across the bottom-left and bottom-right corners, with glittering sleeping-city lights and a thin pastel atmosphere glow on those corner arcs; tiny cotton-candy satellites with blinking antennas and pastel star sparkles drift in the left and right thirds. The central vertical third is calm, dark navy #080b12 space with only faint stars, and at its bottom the planet surface stays unlit, low contrast and uncluttered for the note lane. No clouds. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12 base, pastel pink #ffb3d9, lavender #b9a6ff, mint #8ff0d0."
+    },
+    {
+      "id": "stage-ryusei-brakeless",
+      "out": "raw/stages/ryusei-brakeless.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage '流星ブレーキレス'. Wide 3:2 gameplay backdrop of a mountain pass at night under a meteor shower, seen from a high side vantage point: the winding hairpin road with crimson tail-light trails and electric-blue light streaks stays in the left and right thirds and curves away out of frame at both side edges, guardrails and roadside reflectors glint at the sides, streaking meteors fill the upper-left and upper-right corners. The central vertical third holds only a dark, calm night sky above black mountain-ridge silhouettes and a shadowed forest slope, fading into deep navy #080b12 with only faint stars; no road, light trails or meteors cross it, clear for the note lane. No cars or characters in the center. Glossy anime background art, no text, no signs with writing. Palette leans deep navy #080b12 base, tail-light crimson #ff2e4d, meteor blue #2e7bff, chrome silver #cfd8e6."
+    },
+    {
+      "id": "stage-noise-cancel-heart",
+      "out": "raw/stages/noise-cancel-heart.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'ノイズキャンセル・ハート'. Wide 3:2 gameplay backdrop of a rooftop live stage at night above a neon city: glowing tangerine amp stacks, speaker cabinets, cables and spotlight rigs on the left and right thirds, electric-blue light beams sweeping in from the sides. The central vertical third is darker and calm, a dim stage floor under a quiet deep navy #080b12 sky, clear for the note lane. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12 base, electric blue #3aa0ff, tangerine #ff8a3d, spotlight white #f4f7ff."
+    },
+    {
+      "id": "stage-glitter-bug-parade",
+      "out": "raw/stages/glitter-bug-parade.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Glitter Bug Parade!!'. Wide 3:2 gameplay backdrop of a neon pixel amusement park at night: parade floats shaped like glowing pixel bugs, a candy-colored carousel, glitch confetti and neon balloons concentrated on the left and right thirds. The central vertical third is a calm, dark navy #080b12 parade street with faint grid lines only, dim and uncluttered for the note lane. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12 base, hot pink #ff4fb8, cyan #3df2ff, lemon #ffe45c."
+    },
+    {
+      "id": "stage-zero-day-coronation",
+      "out": "raw/stages/zero-day-coronation.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'ZERO-DAY CORONATION'. Wide 3:2 gameplay backdrop of a colossal cyber-cathedral interior: glowing pipe-organ towers and server-rack pillars lining the left and right thirds in crimson and ultraviolet light, shattered stained glass and floating crown fragments at the far outer edges. The central vertical third is a dark, calm nave fading into deep navy-black #080b12 with no bright details, clear for the note lane. No characters in the center. Glossy anime background art, no text. Palette leans deep navy-black #080b12 base, blood crimson #ff1f3d, ultraviolet #7a1fff, dark gold #c9a227."
     },
     {
       "id": "title-bg",

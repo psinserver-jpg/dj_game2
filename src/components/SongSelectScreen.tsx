@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SongMetadata, DifficultyLevel, GameSettings } from '../types/game';
 import { soundEngine } from '../services/soundEngine';
 import { storageService } from '../services/storageService';
-import { getStageUrl } from '../data/assets';
+import { getStageUrl, handleCoverError } from '../data/assets';
 import { StageBackdrop } from './StageBackdrop';
-import { Play, Volume2, VolumeX, FastForward, Award, Plus, Trash2 } from 'lucide-react';
+import { Play, Volume2, VolumeX, FastForward, Award, Plus, Trash2, Loader2 } from 'lucide-react';
 
 interface SongSelectScreenProps {
   songs: SongMetadata[];
@@ -18,6 +18,70 @@ interface SongSelectScreenProps {
   onOpenEditor: () => void;
   onDeleteCustomSong?: (id: string) => void;
   keyboardEnabled?: boolean; // false while a modal is open
+  isLoading?: boolean; // the selected song's audio is still being fetched/decoded
+}
+
+// Where the music comes from: generated vocal / instrumental track, user upload, or built-in synth
+const SOURCE_BADGES = {
+  vocal: { label: '보컬 · 일본어', className: 'text-fuchsia-300 border-fuchsia-500/40 bg-fuchsia-500/10' },
+  inst: { label: '연주곡', className: 'text-sky-300 border-sky-500/40 bg-sky-500/10' },
+  custom: { label: '커스텀', className: 'text-amber-300 border-amber-500/40 bg-amber-500/10' },
+  synth: { label: '신스', className: 'text-slate-300 border-slate-600/60 bg-slate-800/60' },
+} as const;
+
+// User-made songs: uploads ('custom') and recordings over a stock synth pattern (id custom_*)
+const isCustomSong = (song: SongMetadata) => song.musicPatternId === 'custom' || song.id.startsWith('custom_');
+
+function getSourceBadge(song: SongMetadata) {
+  if (song.audioUrl) return song.vocal === 'ja' ? SOURCE_BADGES.vocal : SOURCE_BADGES.inst;
+  if (isCustomSong(song)) return SOURCE_BADGES.custom;
+  return SOURCE_BADGES.synth;
+}
+
+const SourceBadge: React.FC<{ song: SongMetadata }> = ({ song }) => {
+  const badge = getSourceBadge(song);
+  return (
+    <span
+      className={`inline-flex items-center shrink-0 px-1.5 rounded border text-[10px] leading-4 font-semibold whitespace-nowrap ${badge.className}`}
+    >
+      {badge.label}
+    </span>
+  );
+};
+
+/** 125.4 -> "2:05" */
+function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+// Detected tempos carry decimals (e.g. 127.98); show them as whole BPM
+const formatBpm = (bpm: number) => Math.round(bpm);
+
+const AUDIO_PREVIEW_DELAY_MS = 200;
+
+/**
+ * Start the right preview for a song; generated tracks may still be loading.
+ * onStopped runs when the preview ends by itself or cannot play (not when it is stopped).
+ */
+function startPreview(song: SongMetadata, onStopped: () => void): boolean {
+  if (song.audioUrl) {
+    soundEngine
+      .playAudioPreview(song.audioUrl, song.previewStart, song.previewDuration, onStopped)
+      .then(
+        (result) => {
+          if (result === 'failed') onStopped();
+        },
+        () => onStopped()
+      );
+    return true;
+  }
+  if (song.musicPatternId !== 'custom' && song.musicPatternId !== 'audio') {
+    soundEngine.playPreview(song.musicPatternId, song.bpm, song.previewStart, song.previewDuration, onStopped);
+    return true;
+  }
+  soundEngine.stopPreview();
+  return false;
 }
 
 const DIFFICULTY_CONFIG: Record<
@@ -66,43 +130,43 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
   onOpenEditor,
   onDeleteCustomSong,
   keyboardEnabled = true,
+  isLoading = false,
 }) => {
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const previewDelayRef = useRef<number | null>(null);
+
+  const stopPreview = () => {
+    if (previewDelayRef.current !== null) {
+      window.clearTimeout(previewDelayRef.current);
+      previewDelayRef.current = null;
+    }
+    soundEngine.stopPreview();
+  };
 
   // Play preview when selected song changes
   useEffect(() => {
-    if (selectedSong.musicPatternId !== 'custom') {
-      soundEngine.playPreview(
-        selectedSong.musicPatternId,
-        selectedSong.bpm,
-        selectedSong.previewStart,
-        selectedSong.previewDuration
-      );
-      setIsPlayingPreview(true);
+    const onStopped = () => setIsPlayingPreview(false);
+    if (!selectedSong.audioUrl) {
+      setIsPlayingPreview(startPreview(selectedSong, onStopped));
     } else {
+      // Generated tracks are fetched + decoded first, so wait until the player settles on a song
       soundEngine.stopPreview();
-      setIsPlayingPreview(false);
+      setIsPlayingPreview(true);
+      previewDelayRef.current = window.setTimeout(() => {
+        previewDelayRef.current = null;
+        startPreview(selectedSong, onStopped);
+      }, AUDIO_PREVIEW_DELAY_MS);
     }
 
-    return () => {
-      soundEngine.stopPreview();
-    };
+    return stopPreview;
   }, [selectedSong]);
 
   const togglePreview = () => {
     if (isPlayingPreview) {
-      soundEngine.stopPreview();
+      stopPreview();
       setIsPlayingPreview(false);
-    } else {
-      if (selectedSong.musicPatternId !== 'custom') {
-        soundEngine.playPreview(
-          selectedSong.musicPatternId,
-          selectedSong.bpm,
-          selectedSong.previewStart,
-          selectedSong.previewDuration
-        );
-        setIsPlayingPreview(true);
-      }
+    } else if (startPreview(selectedSong, () => setIsPlayingPreview(false))) {
+      setIsPlayingPreview(true);
     }
   };
 
@@ -114,7 +178,9 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
   const difficulties: DifficultyLevel[] = ['EASY', 'NORMAL', 'HARD', 'EXPERT'];
 
   const handleStart = () => {
-    soundEngine.stopPreview();
+    if (isLoading) return;
+    stopPreview();
+    setIsPlayingPreview(false); // stays accurate if the start fails or is abandoned
     onStartGame();
   };
 
@@ -157,25 +223,38 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
   const startButton = (
     <button
       onClick={handleStart}
-      className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-extrabold text-base tracking-widest uppercase rounded-lg shadow-lg shadow-cyan-500/25 transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+      disabled={isLoading}
+      aria-busy={isLoading}
+      className={`btn-neon w-full py-3.5 font-extrabold text-base tracking-widest uppercase rounded-xl transition-all flex items-center justify-center gap-2 ${
+        isLoading ? 'opacity-70 cursor-wait' : 'transform hover:scale-[1.01] active:scale-[0.98] cursor-pointer'
+      }`}
     >
-      <Play className="w-5 h-5 fill-current" />
-      <span>게임 시작</span>
-      <span className="hidden sm:inline text-xs font-bold opacity-70 tracking-wider">(ENTER)</span>
+      {isLoading ? (
+        <>
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="normal-case tracking-normal">음원 불러오는 중...</span>
+        </>
+      ) : (
+        <>
+          <Play className="w-5 h-5 fill-current" />
+          <span>게임 시작</span>
+          <span className="hidden sm:inline text-xs font-bold opacity-70 tracking-wider">(ENTER)</span>
+        </>
+      )}
     </button>
   );
 
   return (
     <>
     <StageBackdrop imageUrl={getStageUrl(selectedSong)} />
-    <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-4 lg:pb-4 flex-1 lg:min-h-0 flex flex-col">
-      <div className="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
+    <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-4 md:pb-4 flex-1 md:min-h-0 flex flex-col">
+      <div className="grid grid-cols-1 md:grid-cols-12 md:grid-rows-[minmax(0,1fr)] gap-4 md:gap-6 md:flex-1 md:min-h-0">
         {/* Left: Song List Column */}
-        <div className="lg:col-span-7 flex flex-col min-h-0 gap-2 order-2 lg:order-1">
+        <div className="md:col-span-7 flex flex-col min-h-0 gap-2 order-2 md:order-1">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase">
               곡 선택 ({songs.length})
-              <span className="hidden lg:inline ml-2 normal-case tracking-normal font-normal text-slate-500">
+              <span className="hidden md:inline ml-2 normal-case tracking-normal font-normal text-slate-500">
                 ↑↓ 곡 · ←→ 난이도 · Enter 시작
               </span>
             </h2>
@@ -188,7 +267,7 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
             </button>
           </div>
 
-          <div ref={listRef} className="space-y-2 lg:flex-1 lg:min-h-0 lg:overflow-y-auto pr-1">
+          <div ref={listRef} className="space-y-2 md:flex-1 md:min-h-0 md:overflow-y-auto pr-1">
             {songs.map((song) => {
               const isSelected = song.id === selectedSong.id;
               const savedRecord = storageService.getScore(song.id, selectedDifficulty);
@@ -204,8 +283,8 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
                   }}
                   className={`group relative p-2.5 rounded-lg border transition-all duration-150 cursor-pointer flex items-center justify-between gap-4 backdrop-blur-sm ${
                     isSelected
-                      ? 'bg-slate-900/90 border-cyan-500/80 shadow-md shadow-cyan-950/40'
-                      : 'bg-slate-900/50 border-slate-800/80 hover:bg-slate-800/60 hover:border-slate-700'
+                      ? 'glass-panel neon-ring translate-x-1'
+                      : 'bg-slate-900/45 border-slate-800/80 hover:bg-slate-800/60 hover:border-slate-600 hover:translate-x-0.5'
                   }`}
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
@@ -215,6 +294,7 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
                         src={song.coverUrl}
                         alt={song.title}
                         referrerPolicy="no-referrer"
+                        onError={handleCoverError}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                       {isSelected && isPlayingPreview && (
@@ -225,21 +305,19 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
                     </div>
 
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm font-bold text-white truncate group-hover:text-cyan-400 transition-colors">
                           {song.title}
                         </span>
-                        {song.musicPatternId === 'custom' && (
-                          <span className="text-[10px] text-amber-400 font-mono">CUSTOM</span>
-                        )}
+                        <SourceBadge song={song} />
                       </div>
                       <div className="text-xs text-slate-400 truncate">{song.artist}</div>
                       <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5 truncate">
                         <span className="truncate">{song.genre}</span>
                         <span>·</span>
-                        <span className="font-mono shrink-0">{song.bpm} BPM</span>
+                        <span className="font-mono shrink-0">{formatBpm(song.bpm)} BPM</span>
                         <span className="hidden sm:inline">·</span>
-                        <span className="hidden sm:inline font-mono">{song.duration}s</span>
+                        <span className="hidden sm:inline font-mono">{formatDuration(song.duration)}</span>
                       </div>
                     </div>
                   </div>
@@ -259,7 +337,7 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
                       <div className="text-[11px] text-slate-600 font-mono">NO RECORD</div>
                     )}
 
-                    {song.musicPatternId === 'custom' && onDeleteCustomSong && (
+                    {isCustomSong(song) && onDeleteCustomSong && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -281,13 +359,14 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
         </div>
 
         {/* Right: Selected Song Stage Deck — the start button always stays on screen */}
-        <div className="lg:col-span-5 flex flex-col min-h-0 gap-3 bg-slate-900/70 backdrop-blur-sm border border-slate-800 rounded-xl p-4 order-1 lg:order-2">
+        <div className="md:col-span-5 flex flex-col min-h-0 gap-3 glass-panel rounded-2xl p-3 sm:p-4 order-1 md:order-2">
           {/* Album Artwork: shrinks to whatever height is left */}
-          <div className="relative w-full aspect-[16/9] lg:aspect-auto lg:flex-1 lg:min-h-[120px] rounded-lg overflow-hidden border border-slate-700/80 shadow-inner">
+          <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] max-h-[34dvh] md:max-h-none md:aspect-auto md:flex-1 md:min-h-[120px] rounded-lg overflow-hidden border border-slate-700/80 shadow-inner">
             <img
               src={selectedSong.coverUrl}
               alt={selectedSong.title}
               referrerPolicy="no-referrer"
+              onError={handleCoverError}
               className="absolute inset-0 w-full h-full object-cover"
             />
 
@@ -309,12 +388,13 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5 font-mono">
+              <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5 font-mono min-w-0">
+                <SourceBadge song={selectedSong} />
                 <span className="truncate">{selectedSong.genre}</span>
                 <span>·</span>
-                <span className="shrink-0">{selectedSong.bpm} BPM</span>
+                <span className="shrink-0">{formatBpm(selectedSong.bpm)} BPM</span>
                 <span>·</span>
-                <span className="shrink-0">{selectedSong.duration}초</span>
+                <span className="shrink-0">{formatDuration(selectedSong.duration)}</span>
               </div>
             </div>
           </div>
@@ -330,16 +410,20 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
                 <button
                   key={diff}
                   onClick={() => onSelectDifficulty(diff)}
-                  className={`py-1.5 px-1 text-center rounded border transition-all cursor-pointer ${
+                  className={`relative py-2 px-1 text-center rounded-lg border transition-all cursor-pointer overflow-hidden ${
                     isCurrent
-                      ? `${config.bg} ${config.border} ring-1 ring-white/20`
-                      : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      ? `${config.bg} ${config.border} ring-1 ring-white/25`
+                      : 'bg-slate-950/50 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200'
                   }`}
+                  style={isCurrent ? { boxShadow: `0 0 22px -8px ${config.color}` } : undefined}
                 >
-                  <div className={`text-[11px] font-bold tracking-wider ${isCurrent ? config.text : 'text-slate-400'}`}>
+                  {isCurrent && <span className="absolute inset-x-0 top-0 h-0.5" style={{ background: config.color }} />}
+                  <div className={`text-[10px] sm:text-[11px] font-bold tracking-wider ${isCurrent ? config.text : 'text-slate-400'}`}>
                     {config.label}
                   </div>
-                  <div className="text-xs font-mono font-semibold text-slate-300">Lv.{map?.level || 1}</div>
+                  <div className={`text-base font-mono font-black leading-tight ${isCurrent ? 'text-white' : 'text-slate-300'}`}>
+                    {map?.level || 1}
+                  </div>
                 </button>
               );
             })}
@@ -390,12 +474,12 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
           </div>
 
           {/* Primary Action Button (desktop: inside the deck) */}
-          <div className="hidden lg:block shrink-0">{startButton}</div>
+          <div className="hidden md:block shrink-0">{startButton}</div>
         </div>
       </div>
 
       {/* Mobile / tablet: start button pinned to the bottom of the screen */}
-      <div className="lg:hidden sticky bottom-0 z-20 -mx-4 sm:-mx-6 mt-4 px-4 sm:px-6 pt-6 pb-4 bg-gradient-to-t from-[#080b12] via-[#080b12]/95 to-transparent">
+      <div className="md:hidden sticky bottom-0 z-20 -mx-4 sm:-mx-6 mt-4 px-4 sm:px-6 pt-6 pb-4 bg-gradient-to-t from-[#080b12] via-[#080b12]/95 to-transparent">
         {startButton}
       </div>
     </div>

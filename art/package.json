@@ -5,7 +5,8 @@
   "description": "Asset pipeline: generate images with Codex (gpt-image) and convert them for the web.",
   "scripts": {
     "generate": "node generate.mjs",
-    "process": "node process.mjs"
+    "process": "node process.mjs",
+    "sync-songs": "node sync-songs.mjs"
   },
   "devDependencies": {
     "sharp": "^0.34.0"

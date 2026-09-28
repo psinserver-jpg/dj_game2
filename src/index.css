@@ -77,3 +77,55 @@
     animation: none;
   }
 }
+
+/* ---------- Shared UI surfaces (design pass) ---------- */
+@layer components {
+  /* Frosted dark panel used by HUD, cards and modals */
+  .glass-panel {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(8, 11, 18, 0.82));
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    box-shadow:
+      0 12px 36px -14px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Selected / focused element: thin cyan edge with a soft outer glow */
+  .neon-ring {
+    border-color: rgba(34, 211, 238, 0.75) !important;
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.35),
+      0 0 26px -6px rgba(34, 211, 238, 0.55),
+      inset 0 0 20px -12px rgba(34, 211, 238, 0.6);
+  }
+
+  /* Primary call-to-action */
+  .btn-neon {
+    background: linear-gradient(90deg, #22d3ee, #38bdf8 45%, #818cf8);
+    color: #020617;
+    box-shadow:
+      0 10px 30px -10px rgba(56, 189, 248, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+  .btn-neon:hover {
+    filter: brightness(1.08);
+  }
+
+  /* Big gradient text (ranks, headings) */
+  .text-neon {
+    background: linear-gradient(180deg, #ffffff 0%, #a5f3fc 45%, #f0abfc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.45));
+  }
+}
+
+/* Mobile: no rubber-band scrolling, no tap flash, no long-press callout during play */
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}

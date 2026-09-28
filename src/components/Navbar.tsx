@@ -1,7 +1,7 @@
 import React from 'react';
 import { GameView } from '../types/game';
 import { Sliders, HelpCircle, Music, Play, FileDown } from 'lucide-react';
-import { DOCS } from '../data/assets';
+import { DOCS, IMAGES } from '../data/assets';
 
 interface NavbarProps {
   currentView: GameView;
@@ -22,14 +22,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   }
 
   return (
-    <header className="w-full border-b border-slate-800 bg-[#080b12]/95 backdrop-blur-md z-40 sticky top-0 px-6 py-3.5">
+    <header className="relative w-full bg-[#080b12]/85 backdrop-blur-md z-40 sticky top-0 px-4 sm:px-6 py-2.5 sm:py-3">
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Zone 1: Single text element wordmark */}
         <button
           onClick={() => onNavigate('SONG_SELECT')}
-          className="text-lg font-extrabold tracking-wider font-display text-white hover:text-cyan-400 transition-colors uppercase cursor-pointer"
+          className="shrink-0 cursor-pointer transition-transform hover:scale-[1.03]"
+          aria-label="PULSEBEAT 곡 선택"
         >
-          PulseBeat
+          <img src={IMAGES.logo} alt="PULSEBEAT" className="h-6 sm:h-7 w-auto drop-shadow-[0_0_10px_rgba(34,211,238,0.35)]" />
         </button>
 
         {/* Zone 2: 4-6 clean text navigation links */}

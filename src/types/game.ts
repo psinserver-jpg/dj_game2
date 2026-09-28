@@ -25,6 +25,15 @@ export interface Beatmap {
   noteCount: number;
 }
 
+// Built-in synth arrangements, 'custom' (user upload/recording) or 'audio' (generated track at audioUrl)
+export type MusicPatternId =
+  | 'neon_velocity'
+  | 'midnight_tokyo'
+  | 'solar_overdrive'
+  | 'starlight_lullaby'
+  | 'custom'
+  | 'audio';
+
 export interface SongMetadata {
   id: string;
   title: string;
@@ -37,7 +46,25 @@ export interface SongMetadata {
   previewStart: number;
   previewDuration: number;
   difficulties: Record<DifficultyLevel, Beatmap>;
-  musicPatternId: 'neon_velocity' | 'midnight_tokyo' | 'solar_overdrive' | 'starlight_lullaby' | 'custom';
+  musicPatternId: MusicPatternId;
+  audioUrl?: string; // generated track (musicPatternId 'audio'), see public/music/manifest.json
+  vocal?: 'ja' | 'none';
+  lyrics?: string;
+}
+
+/** A judged hit: signed offset in ms (negative = early, positive = late). */
+export interface HitSample {
+  offsetMs: number;
+  judgment: JudgmentType;
+  at: number; // performance.now() when judged
+}
+
+export interface TimingStats {
+  hits: number;
+  meanMs: number; // average offset: negative = hitting early, positive = late
+  stdMs: number; // spread (consistency); lower is steadier
+  histogram: number[]; // 10 ms bins from -140 to +140 ms
+  audioOffsetMs: number; // the offset setting used in this play
 }
 
 export interface GameScore {
@@ -54,6 +81,7 @@ export interface GameScore {
     fast: number;
     slow: number;
   };
+  timing?: TimingStats; // per-hit timing analysis (older saved scores don't have it)
   grade: 'SSS' | 'SS' | 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
   isFullCombo: boolean;
   isAllPerfect: boolean;

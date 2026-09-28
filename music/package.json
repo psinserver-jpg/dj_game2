@@ -1,0 +1,14 @@
+{
+  "name": "pulsebeat-music",
+  "private": true,
+  "type": "module",
+  "description": "Song pipeline: generate tracks with Gemini Lyria, then analyse them into charts.",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "chart": "node chart.mjs"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "mpg123-decoder": "^1.0.0"
+  }
+}

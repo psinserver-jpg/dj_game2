@@ -85,11 +85,13 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             className="group relative px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm tracking-wider uppercase rounded transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg shadow-cyan-500/20 cursor-pointer flex items-center gap-2"
           >
             <Play className="w-4 h-4 fill-current" />
-            <span>게임 시작 (PRESS ENTER)</span>
+            <span>
+              게임 시작 <span className="pointer-coarse:hidden">(PRESS ENTER)</span>
+            </span>
           </button>
 
           <span className="text-xs text-slate-500 tracking-wider">
-            키보드 D · F · J · K 또는 모바일 터치 지원
+            키보드 D · F · J · K 또는 화면 아래쪽 터치로 플레이
           </span>
         </div>
 
@@ -98,10 +100,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <div className="p-3.5 rounded bg-slate-950/60 backdrop-blur-sm border border-slate-700/60">
             <div className="text-xs font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
               <Music className="w-3.5 h-3.5" />
-              <span>실시간 오디오 합성</span>
+              <span>Lyria 3 Pro 오리지널 곡</span>
             </div>
             <p className="text-xs text-slate-400 leading-snug">
-              네트워크 지연 없이 0ms 정밀도로 동기화되는 Web Audio 신스 엔진
+              일본어 보컬곡과 연주곡, 음원을 분석해 박자에 맞춘 채보
             </p>
           </div>
 
@@ -118,10 +120,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <div className="p-3.5 rounded bg-slate-950/60 backdrop-blur-sm border border-slate-700/60">
             <div className="text-xs font-bold text-amber-400 mb-1 flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5" />
-              <span>커스텀 에디터 & 보정</span>
+              <span>정확도 분석 & 싱크 보정</span>
             </div>
             <p className="text-xs text-slate-400 leading-snug">
-              키 매핑, 오디오 싱크 지연 오프셋 조정, 나만의 패턴 제작
+              ms 단위 타이밍 막대와 결과 분석, 추천 오프셋 원클릭 적용
             </p>
           </div>
         </div>

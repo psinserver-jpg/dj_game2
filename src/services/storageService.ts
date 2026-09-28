@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   audioOffsetMs: 0,
   musicVolume: 0.75,
   sfxVolume: 0.85,
-  backgroundDim: 0.5,
+  backgroundDim: 0.35,
   perspectiveMode: '3D',
   noteSkin: 'neon',
   showFastSlow: true,

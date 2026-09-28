@@ -21,7 +21,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-slate-900 border border-slate-700/80 rounded-xl p-6 shadow-2xl max-h-[90dvh] overflow-y-auto space-y-6">
+      <div className="w-full max-w-sm glass-panel rounded-2xl p-6 max-h-[90dvh] overflow-y-auto space-y-6">
         <div className="text-center space-y-1">
           <h2 className="text-2xl font-black font-display text-white uppercase tracking-wider">
             일시 정지
