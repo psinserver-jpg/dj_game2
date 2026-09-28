@@ -1,0 +1,6 @@
+{
+  "name": "비트 스트림 - PulseBeat Cyber Rhythm",
+  "description": "짜릿한 타격감과 화려한 비주얼의 웹 아케이드 4키 리듬게임",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
