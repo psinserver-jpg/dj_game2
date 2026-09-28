@@ -781,7 +781,7 @@ export function analyzeAudio(x, sr, promptBpm, { chartBpm } = {}) {
   if (miss > GRID_MISS_WARN) {
     warnings.push(
       `강한 온셋의 ${Math.round(miss * 100)}%가 ${r2(bpm)} BPM 16분 격자에서 ${GRID_TOL * 1000}ms 넘게 벗어납니다 ` +
-        `(템포가 틀렸거나 스윙/셋잇단 리듬). 노트 시각은 실제 온셋에 맞추지만 차트를 확인하세요`
+        `(템포가 틀렸거나 스윙/셋잇단 리듬). 노트는 박자 격자에만 놓이지만, 템포가 맞는지 들어 보고 확인하세요`
     );
   }
 

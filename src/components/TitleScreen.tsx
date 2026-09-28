@@ -72,7 +72,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </h1>
 
           <p className="text-slate-300 text-sm sm:text-base max-w-md mx-auto leading-relaxed">
-            짜릿한 타격감과 역동적인 신디사이저 사운드트랙.
+            짜릿한 타격감과 Lyria로 만든 오리지널 사운드트랙.
             <br />
             비트에 맞춰 완벽한 타이밍을 포착하세요.
           </p>

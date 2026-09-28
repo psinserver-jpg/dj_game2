@@ -5,6 +5,8 @@
 
 import { getPatternEvents } from '../data/patterns';
 
+const SFX_URLS = { hit: '/sfx/hit.wav', clear: '/sfx/clear.wav' } as const;
+
 // A decoded 2-minute stereo track is ~40 MB of PCM, so only the most recent few are kept.
 const MAX_CACHED_TRACKS = 3;
 const PREVIEW_FADE_SEC = 0.35;
@@ -77,6 +79,7 @@ class SoundEngine {
       this.sfxGain.connect(this.masterGain);
       this.masterGain.connect(this.ctx.destination);
     }
+    this.loadSfx();
 
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
@@ -132,76 +135,60 @@ class SoundEngine {
   }
 
   // --- Hitsound Synthesizer ---
-  public playHitSound(lane: number) {
-    if (!this.ctx || !this.sfxGain) this.init();
-    if (!this.ctx || !this.sfxGain) return;
+  // --- Sampled sound effects (public/sfx, rendered by music/sfx.mjs) ---
+  private sfxBuffers: Record<string, AudioBuffer | null> = {};
+  private sfxLoading: Record<string, Promise<void> | undefined> = {};
 
-    const t = this.ctx.currentTime;
-    
-    // Musical pitch per lane: C5, E5, G5, C6 (Penta/Harmonic arpeggio feel)
-    const pitches = [523.25, 659.25, 783.99, 1046.50];
-    const freq = pitches[lane % pitches.length];
-
-    // 1. Crystal Harmonic Bell / Tonal Ping
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, t);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.98, t + 0.12);
-
-    gain.gain.setValueAtTime(0.28, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-
-    osc.start(t);
-    osc.stop(t + 0.15);
-
-    // 2. High-transient Crisp Wood / Clap Click
-    const bufferSize = this.ctx.sampleRate * 0.04;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
+  /** Fetch + decode the effect samples once (called on the first user gesture via init()). */
+  public loadSfx() {
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    for (const [name, url] of Object.entries(SFX_URLS)) {
+      if (this.sfxBuffers[name] || this.sfxLoading[name]) continue;
+      this.sfxLoading[name] = fetch(url)
+        .then((r) => {
+          if (!r.ok) throw new Error(`${r.status}`);
+          return r.arrayBuffer();
+        })
+        .then((data) => ctx.decodeAudioData(data))
+        .then((buf) => {
+          this.sfxBuffers[name] = buf;
+        })
+        .catch((err) => {
+          console.warn(`[soundEngine] sfx ${url} failed:`, err);
+          this.sfxLoading[name] = undefined;
+        });
     }
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+  }
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(2800, t);
-    filter.Q.setValueAtTime(3.0, t);
+  private playSfx(name: keyof typeof SFX_URLS, gain = 1) {
+    if (!this.ctx || !this.sfxGain) this.init();
+    const buf = this.sfxBuffers[name];
+    if (!this.ctx || !this.sfxGain || !buf) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const g = this.ctx.createGain();
+    g.gain.value = gain;
+    src.connect(g);
+    g.connect(this.sfxGain);
+    src.start();
+  }
 
-    const noiseGain = this.ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.35, t);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  /** Note hit: one pitch-less percussive sample for every lane, so it never clashes with the song. */
+  public playHitSound(_lane: number) {
+    this.playSfx('hit', 0.9);
+  }
 
-    noise.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(this.sfxGain);
-
-    noise.start(t);
+  /** Stage clear fanfare on the result screen. */
+  public playClearSound() {
+    this.playSfx('clear', 0.8);
   }
 
   public playCalibrationMetronome() {
     this.init();
-    if (!this.ctx || !this.sfxGain) return;
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1000, t);
-    osc.frequency.exponentialRampToValueAtTime(400, t + 0.06);
-
-    gain.gain.setValueAtTime(0.4, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-    osc.start(t);
-    osc.stop(t + 0.07);
+    this.playSfx('hit', 1);
   }
+
 
   // --- Instrument Synthesis Blocks ---
   private triggerKick(time: number, accent = 1.0) {

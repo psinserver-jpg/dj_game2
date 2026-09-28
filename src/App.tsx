@@ -46,9 +46,11 @@ export default function App() {
   const [customSongs, setCustomSongs] = useState<SongMetadata[]>([]);
   const [generatedSongs, setGeneratedSongs] = useState<SongMetadata[]>([]);
   const allSongs = useMemo(() => {
-    // Custom > generated > built-in; the first song with a given id wins so list keys stay unique
+    // Custom > generated; the built-in synth-only songs are just a fallback for when the generated
+    // tracks can't be loaded (offline / missing manifest). The first song with an id wins.
     const seen = new Set<string>();
-    return [...customSongs, ...generatedSongs, ...INITIAL_SONGS].filter((song) => {
+    const base = generatedSongs.length ? generatedSongs : INITIAL_SONGS;
+    return [...customSongs, ...base].filter((song) => {
       if (seen.has(song.id)) return false;
       seen.add(song.id);
       return true;

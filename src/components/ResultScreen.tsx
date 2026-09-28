@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GameScore, SongMetadata, DifficultyLevel } from '../types/game';
 import confetti from 'canvas-confetti';
+import { soundEngine } from '../services/soundEngine';
 import { getStageUrl, handleCoverError } from '../data/assets';
 import { StageBackdrop } from './StageBackdrop';
 import { TimingAnalysis } from './TimingAnalysis';
@@ -39,6 +40,11 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   onApplyOffset,
 }) => {
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // Stage clear fanfare (same threshold as the STAGE CLEAR / FULL COMBO badge below)
+    if (score.score >= 700000 || score.isFullCombo) soundEngine.playClearSound();
+  }, [score]);
 
   useEffect(() => {
     // Launch celebratory confetti on good ranks

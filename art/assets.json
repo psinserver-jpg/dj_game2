@@ -80,6 +80,66 @@
       "brief": "Square album cover for 'ZERO-DAY CORONATION' by Cantor Omega, Symphonic Artcore at 196 BPM. Square glossy anime key-visual illustration, dark and grand: an armored machine empress seated on a towering throne built from black server racks and cathedral organ pipes, a floating crimson crown assembled from shattered light shards hovering above her head, a lone small challenger silhouette with a glowing blade facing her from below, ultraviolet and blood-red neon rim light, broken stained-glass windows and concentric halo rings behind her, sparks and data-dust particles in a deep navy-black #080b12 void. Accents of blood crimson, ultraviolet and dark gold. No text, no letters, no readable code or glyphs, no logos. Palette leans deep navy-black #080b12 base, blood crimson #ff1f3d, ultraviolet #7a1fff, dark gold #c9a227."
     },
     {
+      "id": "cover-rainy-window-loops",
+      "out": "raw/covers/rainy-window-loops.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Rainy Window Loops' by Mellow Tape, Chillhop at 86 BPM. Square glossy anime key-visual illustration: a sleepy anime girl with headphones and a big knit cardigan sits by a rain-streaked cafe window at dusk, a steaming mug and an open sketchbook on the table, neon signs of a quiet street blurred outside, a cassette tape player glowing softly; cozy and calm. Deep navy base with warm amber and soft rain-blue accents. No text, no letters, no logos. Palette leans deep navy #080b12, warm amber #ffb86b, rain blue #7fb4ff, soft cream #f4e3c1."
+    },
+    {
+      "id": "cover-pixel-pocket-rocket",
+      "out": "raw/covers/pixel-pocket-rocket.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Pixel Pocket Rocket' by 8bit Kiddo, Chiptune at 144 BPM. Square glossy anime key-visual illustration: a cheerful chibi-proportioned kid pilot with goggles rides a tiny pixel-art rocket out of a glowing handheld game console screen, trailing pixel stars and coins over a night city; bright, playful, retro-futuristic. Deep navy base with pixel green, candy red and cyan accents. No text, no letters, no logos. Palette leans deep navy #080b12, pixel green #7CFF6B, candy red #FF4D6D, sky cyan #5BE7FF."
+    },
+    {
+      "id": "cover-velvet-metro",
+      "out": "raw/covers/velvet-metro.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Velvet Metro' by Downtown Quartet 2045, Jazz-Funk Fusion at 118 BPM. Square glossy anime key-visual illustration: a stylish young saxophonist in a velvet-purple suit and round sunglasses plays inside a futuristic subway car at night, neon tunnel lights streaking past the windows, a bassist and keyboardist silhouetted behind, brass glinting gold; cool and smooth. Deep navy base with velvet purple, brass gold and teal accents. No text, no letters, no logos. Palette leans deep navy #080b12, velvet purple #8a5cff, brass gold #f2c14e, teal #3fd0c9."
+    },
+    {
+      "id": "cover-glitch-in-the-arcade",
+      "out": "raw/covers/glitch-in-the-arcade.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Glitch in the Arcade' by Byte Bandit, Glitch Hop at 110 BPM. Square glossy anime key-visual illustration: a grinning hacker girl in an oversized hoodie with cat-ear headphones leans on a glitching arcade cabinet, the screen spilling pixel fragments and magenta-green glitch ribbons around her, a neon game center behind; mischievous energy. Deep navy base with glitch magenta, acid green and cyan accents. No text, no letters, no logos. Palette leans deep navy #080b12, glitch magenta #ff3df2, acid green #b6ff3d, cyan #29e3ff."
+    },
+    {
+      "id": "cover-ironclad-euphoria",
+      "out": "raw/covers/ironclad-euphoria.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Ironclad Euphoria' by HYPERION//DRIVE, Euphoric Hardstyle at 150 BPM. Square glossy anime key-visual illustration: an armored mecha pilot girl with long silver hair stands on the shoulder of a giant steel robot raising a glowing blade, molten orange sparks and electric blue light beams exploding across a festival-sized night sky; triumphant and powerful. Deep navy base with molten orange, steel silver and electric blue accents. No text, no letters, no logos. Palette leans deep navy #080b12, molten orange #ff7a1a, steel silver #c9d3e0, electric blue #3aa0ff."
+    },
+    {
+      "id": "cover-skyline-refraction",
+      "out": "raw/covers/skyline-refraction.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Skyline Refraction' by Paper Aurora, Liquid Drum & Bass at 174 BPM. Square glossy anime key-visual illustration: a girl in a flowing white jacket glides on a transparent glass hoverboard between shining glass skyscrapers at sunrise, prisms of light refracting into rainbow streaks around her, paper birds flying alongside; hopeful and airy. Deep navy base with sunrise pink, glass cyan and soft gold accents. No text, no letters, no logos. Palette leans deep navy #080b12, sunrise pink #ff8fb1, glass cyan #7ee8ff, soft gold #ffd66b."
+    },
+    {
+      "id": "cover-candy-overclock",
+      "out": "raw/covers/candy-overclock.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Candy Overclock' by POPCORN HARDCORE, Happy Hardcore at 170 BPM. Square glossy anime key-visual illustration: an energetic twin-tailed girl in a candy-striped jacket surfs on a giant lollipop through a whirling candy factory conveyor maze, bursting gumballs and neon sweets exploding around her; hyper and joyful. Deep navy base with bubblegum pink, lemon yellow and mint accents. No text, no letters, no logos. Palette leans deep navy #080b12, bubblegum pink #ff5fb5, lemon yellow #ffe84d, mint #5dffc8."
+    },
+    {
+      "id": "cover-stratosphere-seven",
+      "out": "raw/covers/stratosphere-seven.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Stratosphere Seven' by Lumen Gate, Uplifting Trance at 138 BPM. Square glossy anime key-visual illustration: a girl in a sleek white flight suit floats weightless at the edge of the stratosphere above curved Earth, reaching toward a blazing sunrise, seven glowing ring-shaped satellites orbiting in a line behind her, aurora ribbons of violet light; awe and wonder. Deep navy base with stratosphere blue, aurora violet and sunlight white accents. No text, no letters, no logos. Palette leans deep navy #080b12, stratosphere blue #4d8bff, aurora violet #a26bff, sunlight white #f5f7ff."
+    },
+    {
+      "id": "cover-gravity-well",
+      "out": "raw/covers/gravity-well.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Gravity Well' by Sub Zero Engine, Melodic Dubstep at 140 BPM. Square glossy anime key-visual illustration: a lone astronaut boy with a glowing visor falls toward a colossal black hole ringed by an orange accretion disk, shards of spaceships and ice crystals spiraling inward around him, light bending dramatically; epic and heavy. Deep navy base with event-horizon orange, ice blue and deep violet accents. No text, no letters, no logos. Palette leans deep navy #080b12, event-horizon orange #ff9a3c, ice blue #7fd6ff, deep violet #5b3dff."
+    },
+    {
+      "id": "cover-fractal-guitar-machine",
+      "out": "raw/covers/fractal-guitar-machine.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Fractal Guitar Machine' by Tessellate, Math Rock at 188 BPM. Square glossy anime key-visual illustration: a fierce guitarist girl with short cyan hair and a fractal-patterned electric guitar shreds on a floating geometric stage, crystalline fractal shards and light strings exploding outward, a drummer silhouette behind in coral light; intense and technical. Deep navy base with prism cyan, hot coral and white accents. No text, no letters, no logos. Palette leans deep navy #080b12, prism cyan #37f0ff, hot coral #ff5a6e, white #ffffff."
+    },
+    {
       "id": "stage-neon-velocity",
       "out": "raw/stages/neon-velocity.png",
       "size": "1536x1024",
@@ -150,6 +210,66 @@
       "out": "raw/stages/zero-day-coronation.png",
       "size": "1536x1024",
       "brief": "Wide landscape gameplay backdrop for the stage 'ZERO-DAY CORONATION'. Wide 3:2 gameplay backdrop of a colossal cyber-cathedral interior: glowing pipe-organ towers and server-rack pillars lining the left and right thirds in crimson and ultraviolet light, shattered stained glass and floating crown fragments at the far outer edges. The central vertical third is a dark, calm nave fading into deep navy-black #080b12 with no bright details, clear for the note lane. No characters in the center. Glossy anime background art, no text. Palette leans deep navy-black #080b12 base, blood crimson #ff1f3d, ultraviolet #7a1fff, dark gold #c9a227."
+    },
+    {
+      "id": "stage-rainy-window-loops",
+      "out": "raw/stages/rainy-window-loops.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Rainy Window Loops'. Wide 3:2 gameplay backdrop of a cozy cafe interior on a rainy evening seen from inside: rain-streaked windows, hanging warm bulbs, potted plants and shelves of records concentrated on the left and right thirds. The central vertical third is a dim, calm wooden floor and soft darkness fading into deep navy #080b12, uncluttered. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12, warm amber #ffb86b, rain blue #7fb4ff, soft cream #f4e3c1."
+    },
+    {
+      "id": "stage-pixel-pocket-rocket",
+      "out": "raw/stages/pixel-pocket-rocket.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Pixel Pocket Rocket'. Wide 3:2 gameplay backdrop of a giant pixel-art night sky world: blocky pixel clouds, floating coin blocks and pixel planets concentrated on the left and right thirds, a pixel city skyline along the bottom corners. The central vertical third is a calm dark navy #080b12 sky with only a few tiny pixel stars, uncluttered. No characters in the center. Glossy anime background art mixed with pixel art, no text. Palette leans deep navy #080b12, pixel green #7CFF6B, candy red #FF4D6D, sky cyan #5BE7FF."
+    },
+    {
+      "id": "stage-velvet-metro",
+      "out": "raw/stages/velvet-metro.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Velvet Metro'. Wide 3:2 gameplay backdrop inside a futuristic subway station at night: glowing jazz-club style signs without text, tiled arches, brass railings and waiting benches concentrated on the left and right thirds, a train blurred at the far edges. The central vertical third is a dark, calm platform floor fading into deep navy #080b12, uncluttered. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12, velvet purple #8a5cff, brass gold #f2c14e, teal #3fd0c9."
+    },
+    {
+      "id": "stage-glitch-in-the-arcade",
+      "out": "raw/stages/glitch-in-the-arcade.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Glitch in the Arcade'. Wide 3:2 gameplay backdrop of a neon game center at night: rows of glowing arcade cabinets, claw machines and glitch artifacts concentrated on the left and right thirds, scattered pixel fragments floating at the edges. The central vertical third is a dark, calm carpeted aisle fading into deep navy #080b12, uncluttered. No characters in the center. Glossy anime background art, no text on screens or signs. Palette leans deep navy #080b12, glitch magenta #ff3df2, acid green #b6ff3d, cyan #29e3ff."
+    },
+    {
+      "id": "stage-ironclad-euphoria",
+      "out": "raw/stages/ironclad-euphoria.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Ironclad Euphoria'. Wide 3:2 gameplay backdrop of a colossal steel festival stage built like a giant robot hangar: towering speaker walls, pyrotechnic sparks and orange flame jets concentrated on the left and right thirds, electric blue light beams fanning at the outer edges. The central vertical third is a dark, calm stage floor fading into deep navy #080b12, uncluttered. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12, molten orange #ff7a1a, steel silver #c9d3e0, electric blue #3aa0ff."
+    },
+    {
+      "id": "stage-skyline-refraction",
+      "out": "raw/stages/skyline-refraction.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Skyline Refraction'. Wide 3:2 gameplay backdrop of a glass skyscraper city at dawn seen from high above: refracted rainbow light beams, glass towers and floating paper birds concentrated on the left and right thirds. The central vertical third is a calm, darker gradient sky fading into deep navy #080b12 near the bottom, uncluttered. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12, sunrise pink #ff8fb1, glass cyan #7ee8ff, soft gold #ffd66b."
+    },
+    {
+      "id": "stage-candy-overclock",
+      "out": "raw/stages/candy-overclock.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Candy Overclock'. Wide 3:2 gameplay backdrop of a neon candy factory at night: giant gumball machines, lollipop towers and conveyor belts of sweets concentrated on the left and right thirds. The central vertical third is a dark, calm factory floor fading into deep navy #080b12, uncluttered. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12, bubblegum pink #ff5fb5, lemon yellow #ffe84d, mint #5dffc8."
+    },
+    {
+      "id": "stage-stratosphere-seven",
+      "out": "raw/stages/stratosphere-seven.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Stratosphere Seven'. Wide 3:2 gameplay backdrop of the edge of space above a curved Earth: ring-shaped satellites and violet aurora ribbons concentrated on the left and right thirds, the glowing planet horizon curving only through the bottom corners. The central vertical third is calm dark space fading into deep navy #080b12, uncluttered. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12, stratosphere blue #4d8bff, aurora violet #a26bff, sunlight white #f5f7ff."
+    },
+    {
+      "id": "stage-gravity-well",
+      "out": "raw/stages/gravity-well.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Gravity Well'. Wide 3:2 gameplay backdrop of deep space around a giant black hole: the glowing orange accretion disk arcs only through the top corners, spiraling debris and ice shards concentrated on the left and right thirds. The central vertical third is calm, very dark space fading into deep navy #080b12, uncluttered. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12, event-horizon orange #ff9a3c, ice blue #7fd6ff, deep violet #5b3dff."
+    },
+    {
+      "id": "stage-fractal-guitar-machine",
+      "out": "raw/stages/fractal-guitar-machine.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Fractal Guitar Machine'. Wide 3:2 gameplay backdrop of a floating geometric arena made of crystalline fractal shards: towering amp stacks and glowing fractal pillars concentrated on the left and right thirds, prism light strings stretching across the far edges. The central vertical third is a dark, calm stage floor fading into deep navy #080b12, uncluttered. No characters in the center. Glossy anime background art, no text. Palette leans deep navy #080b12, prism cyan #37f0ff, hot coral #ff5a6e, white #ffffff."
     },
     {
       "id": "title-bg",
