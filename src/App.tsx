@@ -34,6 +34,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const isModalOpen = isSettingsOpen || isHowToPlayOpen;
 
   // Settings
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
@@ -494,7 +495,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080b12] text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
+    <div className="h-[100dvh] bg-[#080b12] text-slate-100 flex flex-col font-sans select-none overflow-hidden">
       {/* 3-Zone Top Navigation Bar */}
       <Navbar
         currentView={currentView}
@@ -508,10 +509,12 @@ export default function App() {
       />
 
       {/* Main View Router */}
-      <main className="flex-1 relative flex flex-col">
+      {/* Screens scroll inside main, so nothing is ever cut off below the fold */}
+      <main className="flex-1 min-h-0 relative flex flex-col overflow-y-auto overflow-x-hidden">
         {currentView === 'TITLE' && (
           <TitleScreen
             onStart={() => setCurrentView('SONG_SELECT')}
+            keyboardEnabled={!isModalOpen}
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenHowToPlay={() => setIsHowToPlayOpen(true)}
           />
@@ -529,11 +532,12 @@ export default function App() {
             onStartGame={handleStartGame}
             onOpenEditor={() => setCurrentView('BEATMAP_EDITOR')}
             onDeleteCustomSong={handleDeleteCustomSong}
+            keyboardEnabled={!isModalOpen}
           />
         )}
 
         {currentView === 'PLAYING' && (
-          <div className="relative w-full h-[100vh] flex flex-col items-center justify-center overflow-hidden bg-[#080b12]">
+          <div className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden bg-[#080b12]">
             {/* Top/Bottom HUD Overlay */}
             <GameHUD
               songTitle={selectedSong.title}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameView } from '../types/game';
-import { Sliders, HelpCircle, Music, Play } from 'lucide-react';
+import { Sliders, HelpCircle, Music, Play, FileDown } from 'lucide-react';
+import { DOCS } from '../data/assets';
 
 interface NavbarProps {
   currentView: GameView;
@@ -59,6 +60,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Zone 3: 1-2 primary actions */}
         <div className="flex items-center gap-3">
+          <a
+            href={DOCS.plan.url}
+            download={DOCS.plan.fileName}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 rounded border border-slate-700 hover:border-slate-600 transition-colors whitespace-nowrap cursor-pointer"
+            title="작업 계획서 다운로드 (.docx)"
+          >
+            <FileDown className="w-3.5 h-3.5 text-pink-400" />
+            <span className="hidden sm:inline">계획서</span>
+          </a>
           <button
             onClick={onOpenSettings}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 rounded border border-slate-700 hover:border-slate-600 transition-colors whitespace-nowrap cursor-pointer"

@@ -1,30 +1,33 @@
 import React, { useEffect } from 'react';
-import { Play, Sparkles, Sliders, Music, Zap } from 'lucide-react';
+import { Play, Sparkles, Sliders, Music, Zap, FileDown } from 'lucide-react';
 import { soundEngine } from '../services/soundEngine';
-import { IMAGES } from '../data/assets';
+import { IMAGES, DOCS } from '../data/assets';
 
 interface TitleScreenProps {
   onStart: () => void;
   onOpenSettings: () => void;
   onOpenHowToPlay: () => void;
+  keyboardEnabled?: boolean; // false while a modal is open
 }
 
 export const TitleScreen: React.FC<TitleScreenProps> = ({
   onStart,
   onOpenSettings,
   onOpenHowToPlay,
+  keyboardEnabled = true,
 }) => {
   // Listen for any key press to start
   useEffect(() => {
+    if (!keyboardEnabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') return;
+      if (e.key === 'Tab' || e.repeat) return;
       soundEngine.init();
       onStart();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onStart]);
+  }, [onStart, keyboardEnabled]);
 
   const handleStartClick = () => {
     soundEngine.init();
@@ -32,7 +35,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-60px)] flex flex-col justify-center items-center px-4 overflow-hidden">
+    <div className="relative flex-1 flex flex-col justify-center items-center px-4 overflow-hidden">
       {/* Key visual background */}
       <img
         src={IMAGES.titleBackground}
@@ -52,7 +55,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         }}
       />
 
-      <div className="relative z-10 max-w-2xl text-center space-y-8 py-10">
+      <div className="relative z-10 max-w-2xl text-center space-y-6 sm:space-y-8 py-6 sm:py-10">
         {/* Main Title Lockup */}
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-2 text-xs uppercase tracking-widest text-cyan-400 font-semibold">
@@ -124,7 +127,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         </div>
 
         {/* Secondary options */}
-        <div className="flex justify-center items-center gap-6 text-xs text-slate-400 pt-2">
+        <div className="flex flex-wrap justify-center items-center gap-x-5 gap-y-2 text-xs text-slate-400 pt-2">
           <button
             onClick={onOpenHowToPlay}
             className="hover:text-slate-200 transition-colors cursor-pointer"
@@ -138,6 +141,15 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           >
             환경 설정
           </button>
+          <span>·</span>
+          <a
+            href={DOCS.plan.url}
+            download={DOCS.plan.fileName}
+            className="flex items-center gap-1 hover:text-slate-200 transition-colors cursor-pointer"
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            계획서 다운로드
+          </a>
         </div>
       </div>
     </div>

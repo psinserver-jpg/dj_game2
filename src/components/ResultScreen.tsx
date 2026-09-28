@@ -59,10 +59,10 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   return (
     <>
     <StageBackdrop imageUrl={getStageUrl(song)} />
-    <div className="relative z-10 w-full max-w-3xl mx-auto px-4 py-8 min-h-[calc(100vh-60px)] flex flex-col justify-center items-center">
-      <div className="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 backdrop-blur-md shadow-2xl space-y-6">
+    <div className="relative z-10 w-full max-w-3xl mx-auto px-4 py-6 flex-1 flex flex-col justify-center items-center">
+      <div className="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-8 backdrop-blur-md shadow-2xl space-y-4 sm:space-y-6">
         {/* Header Title & Stage */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 pb-6 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 sm:gap-4 pb-4 sm:pb-6 border-b border-slate-800">
           <div className="flex items-center gap-4 text-center sm:text-left">
             <img
               src={song.coverUrl}
@@ -111,7 +111,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         {/* Center: Grade Stamp & Score Highlights */}
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
           {/* Grade Badge */}
-          <div className="sm:col-span-4 flex flex-col items-center justify-center p-6 rounded-xl bg-slate-950/70 border border-slate-800 text-center">
+          <div className="sm:col-span-4 flex flex-col items-center justify-center p-3 sm:p-6 rounded-xl bg-slate-950/70 border border-slate-800 text-center">
             <span className="text-xs font-mono tracking-widest text-slate-400 uppercase mb-1">
               RANK
             </span>

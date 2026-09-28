@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SongMetadata, DifficultyLevel, GameSettings } from '../types/game';
 import { soundEngine } from '../services/soundEngine';
 import { storageService } from '../services/storageService';
@@ -17,6 +17,7 @@ interface SongSelectScreenProps {
   onStartGame: () => void;
   onOpenEditor: () => void;
   onDeleteCustomSong?: (id: string) => void;
+  keyboardEnabled?: boolean; // false while a modal is open
 }
 
 const DIFFICULTY_CONFIG: Record<
@@ -64,6 +65,7 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
   onStartGame,
   onOpenEditor,
   onDeleteCustomSong,
+  keyboardEnabled = true,
 }) => {
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
@@ -104,22 +106,78 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
     }
   };
 
+
   const currentBeatmap = selectedSong.difficulties[selectedDifficulty];
   const currentRecord = storageService.getScore(selectedSong.id, selectedDifficulty);
 
   const speedOptions = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
+  const difficulties: DifficultyLevel[] = ['EASY', 'NORMAL', 'HARD', 'EXPERT'];
+
+  const handleStart = () => {
+    soundEngine.stopPreview();
+    onStartGame();
+  };
+
+  // Keyboard: Enter/Space = start, ↑↓ = song, ←→ = difficulty
+  const listRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!keyboardEnabled) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat && (e.key === 'Enter' || e.key === ' ')) return;
+      const target = e.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+
+      const songIndex = songs.findIndex((s) => s.id === selectedSong.id);
+      const diffIndex = difficulties.indexOf(selectedDifficulty);
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleStart();
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const next = (songIndex + (e.key === 'ArrowDown' ? 1 : -1) + songs.length) % songs.length;
+        onSelectSong(songs[next]);
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const next = Math.min(3, Math.max(0, diffIndex + (e.key === 'ArrowRight' ? 1 : -1)));
+        onSelectDifficulty(difficulties[next]);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
+
+  // Keep the highlighted song visible when changing it with the keyboard
+  useEffect(() => {
+    listRef.current
+      ?.querySelector<HTMLElement>(`[data-song-id="${CSS.escape(selectedSong.id)}"]`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [selectedSong.id]);
+
+  const startButton = (
+    <button
+      onClick={handleStart}
+      className="w-full py-3.5 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-extrabold text-base tracking-widest uppercase rounded-lg shadow-lg shadow-cyan-500/25 transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+    >
+      <Play className="w-5 h-5 fill-current" />
+      <span>게임 시작</span>
+      <span className="hidden sm:inline text-xs font-bold opacity-70 tracking-wider">(ENTER)</span>
+    </button>
+  );
 
   return (
     <>
     <StageBackdrop imageUrl={getStageUrl(selectedSong)} />
-    <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 min-h-[calc(100vh-60px)] flex flex-col justify-between gap-6">
-      {/* Top Banner / Selection Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 pt-4 lg:pb-4 flex-1 lg:min-h-0 flex flex-col">
+      <div className="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
         {/* Left: Song List Column */}
-        <div className="lg:col-span-7 space-y-3">
+        <div className="lg:col-span-7 flex flex-col min-h-0 gap-2 order-2 lg:order-1">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase">
               곡 선택 ({songs.length})
+              <span className="hidden lg:inline ml-2 normal-case tracking-normal font-normal text-slate-500">
+                ↑↓ 곡 · ←→ 난이도 · Enter 시작
+              </span>
             </h2>
             <button
               onClick={onOpenEditor}
@@ -130,7 +188,7 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
             </button>
           </div>
 
-          <div className="space-y-2.5 max-h-[58vh] overflow-y-auto pr-1">
+          <div ref={listRef} className="space-y-2 lg:flex-1 lg:min-h-0 lg:overflow-y-auto pr-1">
             {songs.map((song) => {
               const isSelected = song.id === selectedSong.id;
               const savedRecord = storageService.getScore(song.id, selectedDifficulty);
@@ -138,16 +196,21 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
               return (
                 <div
                   key={song.id}
+                  data-song-id={song.id}
                   onClick={() => onSelectSong(song)}
-                  className={`group relative p-3 rounded-lg border transition-all duration-150 cursor-pointer flex items-center justify-between gap-4 ${
+                  onDoubleClick={() => {
+                    onSelectSong(song);
+                    handleStart();
+                  }}
+                  className={`group relative p-2.5 rounded-lg border transition-all duration-150 cursor-pointer flex items-center justify-between gap-4 backdrop-blur-sm ${
                     isSelected
                       ? 'bg-slate-900/90 border-cyan-500/80 shadow-md shadow-cyan-950/40'
-                      : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-800/50 hover:border-slate-700'
+                      : 'bg-slate-900/50 border-slate-800/80 hover:bg-slate-800/60 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     {/* Album Thumbnail */}
-                    <div className="relative w-14 h-14 rounded overflow-hidden shrink-0 bg-slate-800">
+                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded overflow-hidden shrink-0 bg-slate-800">
                       <img
                         src={song.coverUrl}
                         alt={song.title}
@@ -171,12 +234,12 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
                         )}
                       </div>
                       <div className="text-xs text-slate-400 truncate">{song.artist}</div>
-                      <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                        <span>{song.genre}</span>
+                      <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5 truncate">
+                        <span className="truncate">{song.genre}</span>
                         <span>·</span>
-                        <span className="font-mono">{song.bpm} BPM</span>
-                        <span>·</span>
-                        <span className="font-mono">{song.duration}s</span>
+                        <span className="font-mono shrink-0">{song.bpm} BPM</span>
+                        <span className="hidden sm:inline">·</span>
+                        <span className="hidden sm:inline font-mono">{song.duration}s</span>
                       </div>
                     </div>
                   </div>
@@ -217,148 +280,123 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
           </div>
         </div>
 
-        {/* Right: Selected Song Stage Deck */}
-        <div className="lg:col-span-5 bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-5">
-          {/* Large Album Artwork */}
-          <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-slate-700/80 shadow-inner group">
+        {/* Right: Selected Song Stage Deck — the start button always stays on screen */}
+        <div className="lg:col-span-5 flex flex-col min-h-0 gap-3 bg-slate-900/70 backdrop-blur-sm border border-slate-800 rounded-xl p-4 order-1 lg:order-2">
+          {/* Album Artwork: shrinks to whatever height is left */}
+          <div className="relative w-full aspect-[16/9] lg:aspect-auto lg:flex-1 lg:min-h-[120px] rounded-lg overflow-hidden border border-slate-700/80 shadow-inner">
             <img
               src={selectedSong.coverUrl}
               alt={selectedSong.title}
               referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
             />
 
             {/* Gradient Scrim */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-extrabold text-white font-display">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white font-display truncate">
                     {selectedSong.title}
                   </h3>
-                  <p className="text-xs text-slate-300">{selectedSong.artist}</p>
+                  <p className="text-xs text-slate-300 truncate">{selectedSong.artist}</p>
                 </div>
                 <button
                   onClick={togglePreview}
-                  className="p-2.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-200 hover:text-cyan-400 hover:border-cyan-500 transition-all cursor-pointer"
+                  className="shrink-0 p-2.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-200 hover:text-cyan-400 hover:border-cyan-500 transition-all cursor-pointer"
                   title="미리듣기 재생/정지"
                 >
-                  {isPlayingPreview ? (
-                    <VolumeX className="w-4 h-4" />
-                  ) : (
-                    <Volume2 className="w-4 h-4" />
-                  )}
+                  {isPlayingPreview ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 text-xs text-slate-400 mt-2 font-mono">
-                <span>{selectedSong.genre}</span>
+              <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5 font-mono">
+                <span className="truncate">{selectedSong.genre}</span>
                 <span>·</span>
-                <span>{selectedSong.bpm} BPM</span>
+                <span className="shrink-0">{selectedSong.bpm} BPM</span>
                 <span>·</span>
-                <span>{selectedSong.duration}초</span>
+                <span className="shrink-0">{selectedSong.duration}초</span>
               </div>
             </div>
           </div>
 
           {/* Difficulty Selector Tabs */}
-          <div className="space-y-2">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              난이도 선택
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {(['EASY', 'NORMAL', 'HARD', 'EXPERT'] as DifficultyLevel[]).map((diff) => {
-                const config = DIFFICULTY_CONFIG[diff];
-                const map = selectedSong.difficulties[diff];
-                const isCurrent = selectedDifficulty === diff;
+          <div className="grid grid-cols-4 gap-2 shrink-0">
+            {difficulties.map((diff) => {
+              const config = DIFFICULTY_CONFIG[diff];
+              const map = selectedSong.difficulties[diff];
+              const isCurrent = selectedDifficulty === diff;
 
-                return (
-                  <button
-                    key={diff}
-                    onClick={() => onSelectDifficulty(diff)}
-                    className={`py-2 px-1 text-center rounded border transition-all cursor-pointer ${
-                      isCurrent
-                        ? `${config.bg} ${config.border} ring-1 ring-white/20`
-                        : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                    }`}
-                  >
-                    <div
-                      className={`text-[11px] font-bold tracking-wider ${
-                        isCurrent ? config.text : 'text-slate-400'
-                      }`}
-                    >
-                      {config.label}
-                    </div>
-                    <div className="text-xs font-mono font-semibold text-slate-300 mt-0.5">
-                      Lv.{map?.level || 1}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+              return (
+                <button
+                  key={diff}
+                  onClick={() => onSelectDifficulty(diff)}
+                  className={`py-1.5 px-1 text-center rounded border transition-all cursor-pointer ${
+                    isCurrent
+                      ? `${config.bg} ${config.border} ring-1 ring-white/20`
+                      : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <div className={`text-[11px] font-bold tracking-wider ${isCurrent ? config.text : 'text-slate-400'}`}>
+                    {config.label}
+                  </div>
+                  <div className="text-xs font-mono font-semibold text-slate-300">Lv.{map?.level || 1}</div>
+                </button>
+              );
+            })}
           </div>
 
-          {/* High Score Card */}
-          <div className="bg-slate-950/60 border border-slate-800/80 rounded-lg p-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Award className="w-5 h-5 text-amber-400" />
-              <div>
-                <div className="text-[11px] text-slate-400 uppercase font-medium">최고 기록</div>
-                <div className="text-sm font-bold text-white font-mono">
-                  {currentRecord ? currentRecord.score.toLocaleString() : '---'}
+          {/* High Score + Note count */}
+          <div className="shrink-0 bg-slate-950/60 border border-slate-800/80 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Award className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[11px] text-slate-400 font-medium">최고 기록</div>
+                <div className="text-sm font-bold text-white font-mono truncate">
+                  {currentRecord
+                    ? `${currentRecord.score.toLocaleString()} · ${currentRecord.grade}`
+                    : '---'}
                 </div>
               </div>
             </div>
-            {currentRecord && (
-              <div className="text-right">
-                <span className="text-lg font-black text-cyan-400 font-mono">
-                  {currentRecord.grade}
-                </span>
-                <div className="text-[11px] text-slate-400 font-mono">
+            <div className="text-xs text-slate-400 font-mono text-right shrink-0">
+              노트 <span className="text-white font-bold">{currentBeatmap?.noteCount || 0}</span>
+              {currentRecord && (
+                <div className="text-[11px]">
                   {currentRecord.accuracy.toFixed(1)}% · {currentRecord.maxCombo} MAX
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Speed Modifier & Details */}
-          <div className="flex items-center justify-between gap-4 pt-1">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <FastForward className="w-3.5 h-3.5 text-cyan-400" />
-              <span>노트 속도:</span>
-              <div className="flex items-center gap-1">
-                {speedOptions.map((speed) => (
-                  <button
-                    key={speed}
-                    onClick={() => onChangeSpeed(speed)}
-                    className={`px-2 py-0.5 rounded text-xs font-mono transition-colors cursor-pointer ${
-                      settings.scrollSpeed === speed
-                        ? 'bg-cyan-500 text-slate-950 font-bold'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {speed.toFixed(1)}x
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="text-xs text-slate-400 font-mono">
-              노트 수: <span className="text-white font-bold">{currentBeatmap?.noteCount || 0}</span>
+              )}
             </div>
           </div>
 
-          {/* Primary Action Button */}
-          <button
-            onClick={() => {
-              soundEngine.stopPreview();
-              onStartGame();
-            }}
-            className="w-full py-4 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-extrabold text-base tracking-widest uppercase rounded-lg shadow-lg shadow-cyan-500/25 transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Play className="w-5 h-5 fill-current" />
-            <span>게임 시작 (START)</span>
-          </button>
+          {/* Speed Modifier */}
+          <div className="shrink-0 flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+            <FastForward className="w-3.5 h-3.5 text-cyan-400" />
+            <span>노트 속도</span>
+            <div className="flex items-center gap-1 flex-wrap">
+              {speedOptions.map((speed) => (
+                <button
+                  key={speed}
+                  onClick={() => onChangeSpeed(speed)}
+                  className={`px-2 py-0.5 rounded text-xs font-mono transition-colors cursor-pointer ${
+                    settings.scrollSpeed === speed
+                      ? 'bg-cyan-500 text-slate-950 font-bold'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {speed.toFixed(1)}x
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Primary Action Button (desktop: inside the deck) */}
+          <div className="hidden lg:block shrink-0">{startButton}</div>
         </div>
+      </div>
+
+      {/* Mobile / tablet: start button pinned to the bottom of the screen */}
+      <div className="lg:hidden sticky bottom-0 z-20 -mx-4 sm:-mx-6 mt-4 px-4 sm:px-6 pt-6 pb-4 bg-gradient-to-t from-[#080b12] via-[#080b12]/95 to-transparent">
+        {startButton}
       </div>
     </div>
     </>

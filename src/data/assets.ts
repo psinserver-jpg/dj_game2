@@ -14,6 +14,11 @@ export const IMAGES = {
   hitBurst: '/images/sprites/hit-burst.png',
 } as const;
 
+// Downloadable project documents (served from /public/docs)
+export const DOCS = {
+  plan: { url: '/docs/pulsebeat-plan.docx', fileName: 'PulseBeat_작업계획서.docx' },
+} as const;
+
 export const cover = (name: string) => `/images/covers/${name}.webp`;
 export const stage = (name: string) => `/images/stages/${name}.webp`;
 
