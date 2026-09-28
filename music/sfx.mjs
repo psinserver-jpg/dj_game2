@@ -1,9 +1,12 @@
 // Game sound effects -> public/sfx/
 //   hit.wav   : the note hit sound (pitch-less percussive "tak", same for every lane)
+//   select.wav: song / difficulty selection tick in the song list
 //   clear.wav : stage-clear fanfare, cut from a Lyria clip (music/raw/sfx-clear.mp3)
 //
 //   node music/sfx.mjs            # render hit.wav; cut clear.wav if the Lyria clip exists
 //   node music/sfx.mjs --vertex   # also generate the fanfare clip with Lyria (Vertex AI, ~$0.04)
+//   node music/sfx.mjs --title    # generate the title-screen theme with Lyria 3 Pro (~$0.08)
+//                                   -> public/music/title-theme.mp3 (looped with a crossfade in the game)
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +16,16 @@ const ROOT = join(MUSIC_DIR, '..');
 const OUT_DIR = join(ROOT, 'public', 'sfx');
 const RAW_CLEAR = join(MUSIC_DIR, 'raw', 'sfx-clear.mp3');
 const SR = 44100;
+const RAW_TITLE = join(MUSIC_DIR, 'raw', 'title-theme.mp3');
+
+const TITLE_PROMPT =
+  'Uplifting, atmospheric electronic main-menu theme for a music game. Energetic but relaxed electronic track ' +
+  'at a steady 124 BPM in 4/4, constant tempo: punchy four-on-the-floor kick, crisp claps on 2 and 4, shimmering 16th-note ' +
+  'hi-hats, a warm pulsing bass, glassy neon arpeggios, lush pads and a catchy, hopeful lead hook played by bright ' +
+  'electric piano and plucked guitar. It should feel like standing in front of a glowing city at night, ready to play. ' +
+  'Target duration: about 1 minute 40 seconds (100 seconds). Designed to loop: steady energy the whole way with no big ' +
+  'breakdown, no intro silence and no fade-out; the last bar leads naturally back into the first. ' +
+  'Instrumental only, no vocals. Clean, polished modern mix.';
 
 const CLEAR_PROMPT =
   'A short, bright video game STAGE CLEAR victory fanfare stinger. It starts immediately on the very first beat with a big ' +
@@ -103,6 +116,28 @@ function renderHit() {
   return out;
 }
 
+// Song-select tick: a bright, very short UI click with a faint glassy ring
+function renderSelect() {
+  const n = Math.round(SR * 0.07);
+  let seed = 7654321;
+  const rand = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff) * 2 - 1;
+  const air = biquadBandpass(Float32Array.from({ length: n }, rand), 5200, 1.4);
+  const out = new Float32Array(n);
+  let peak = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / SR;
+    const tick = air[i] * Math.exp(-t / 0.006) * 1.8;
+    const ring = (Math.sin(2 * Math.PI * 2350 * t) * 0.6 + Math.sin(2 * Math.PI * 3530 * t) * 0.4) * Math.exp(-t / 0.018) * 0.35;
+    out[i] = tick + ring;
+    peak = Math.max(peak, Math.abs(out[i]));
+  }
+  for (let i = 0; i < n; i++) {
+    const fade = i > n - 200 ? (n - i) / 200 : 1;
+    out[i] = (out[i] / peak) * 0.7 * fade;
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Clear fanfare: generate with Lyria (optional), then cut the first seconds from the onset
 // ---------------------------------------------------------------------------------------------
@@ -129,6 +164,22 @@ async function generateClearClip() {
   mkdirSync(dirname(RAW_CLEAR), { recursive: true });
   writeFileSync(RAW_CLEAR, Buffer.from(audio, 'base64'));
   console.log(`OK   sfx-clear: ${RAW_CLEAR}`);
+}
+
+async function generateTitleTheme() {
+  const project = loadSetting('GOOGLE_CLOUD_PROJECT');
+  if (!project) throw new Error('GOOGLE_CLOUD_PROJECT가 없습니다 (.env.local).');
+  const { GoogleGenAI } = await import('@google/genai');
+  const ai = new GoogleGenAI({ vertexai: true, project, location: loadSetting('GOOGLE_CLOUD_LOCATION') || 'global' });
+  console.log('...  title-theme: lyria-3-pro-preview 요청 중 (Vertex AI)');
+  const it = await ai.interactions.create({ model: 'lyria-3-pro-preview', input: TITLE_PROMPT });
+  const audio = it.output_audio?.data;
+  if (!audio) throw new Error('응답에 오디오가 없습니다');
+  mkdirSync(dirname(RAW_TITLE), { recursive: true });
+  writeFileSync(RAW_TITLE, Buffer.from(audio, 'base64'));
+  const out = join(ROOT, 'public', 'music', 'title-theme.mp3');
+  writeFileSync(out, Buffer.from(audio, 'base64'));
+  console.log(`OK   title-theme -> ${out}`);
 }
 
 async function cutClear() {
@@ -158,8 +209,14 @@ async function cutClear() {
   console.log(`ok   public/sfx/clear.wav (${(len / SR).toFixed(2)}s from ${(start / SR).toFixed(2)}s)`);
 }
 
-writeWav(join(OUT_DIR, 'hit.wav'), [renderHit()]);
-console.log('ok   public/sfx/hit.wav');
-if (process.argv.includes('--vertex')) await generateClearClip();
-if (existsSync(RAW_CLEAR)) await cutClear();
-else console.log('skip clear.wav (music/raw/sfx-clear.mp3 없음 — node music/sfx.mjs --vertex 로 생성)');
+if (process.argv.includes('--title')) {
+  await generateTitleTheme();
+} else {
+  writeWav(join(OUT_DIR, 'hit.wav'), [renderHit()]);
+  console.log('ok   public/sfx/hit.wav');
+  writeWav(join(OUT_DIR, 'select.wav'), [renderSelect()]);
+  console.log('ok   public/sfx/select.wav');
+  if (process.argv.includes('--vertex')) await generateClearClip();
+  if (existsSync(RAW_CLEAR)) await cutClear();
+  else console.log('skip clear.wav (music/raw/sfx-clear.mp3 없음 — node music/sfx.mjs --vertex 로 생성)');
+}

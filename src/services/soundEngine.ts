@@ -5,7 +5,7 @@
 
 import { getPatternEvents } from '../data/patterns';
 
-const SFX_URLS = { hit: '/sfx/hit.wav', clear: '/sfx/clear.wav' } as const;
+const SFX_URLS = { hit: '/sfx/hit.wav', clear: '/sfx/clear.wav', select: '/sfx/select.wav' } as const;
 
 // A decoded 2-minute stereo track is ~40 MB of PCM, so only the most recent few are kept.
 const MAX_CACHED_TRACKS = 3;
@@ -177,6 +177,11 @@ class SoundEngine {
   /** Note hit: one pitch-less percussive sample for every lane, so it never clashes with the song. */
   public playHitSound(_lane: number) {
     this.playSfx('hit', 0.9);
+  }
+
+  /** Song / difficulty selection tick. */
+  public playSelectSound() {
+    this.playSfx('select', 0.7);
   }
 
   /** Stage clear fanfare on the result screen. */
@@ -555,6 +560,99 @@ class SoundEngine {
   }
 
   /** Stops both the synth preview and the generated-track preview (and cancels pending loads). */
+  // --- Title-screen background music: looped, each pass crossfades into the next ---
+  private bgmGain: GainNode | null = null;
+  private bgmSources: AudioBufferSourceNode[] = [];
+  private bgmTimer: number | null = null;
+  private bgmToken = 0;
+  private bgmUrl: string | null = null;
+
+  /** Starts (or keeps) the looping menu music. Audible once the context runs (first user gesture). */
+  public async startBgm(url: string, volume = 0.6) {
+    this.init();
+    if (!this.ctx || !this.musicGain) return;
+    if (this.bgmUrl === url) return; // already playing / loading
+    this.stopBgm(0.2);
+    const token = ++this.bgmToken;
+    this.bgmUrl = url;
+
+    let buffer: AudioBuffer;
+    try {
+      buffer = await this.loadAudio(url);
+    } catch (err) {
+      console.warn('[soundEngine] title music failed:', err);
+      if (token === this.bgmToken) this.bgmUrl = null;
+      return;
+    }
+    const ctx = this.ctx;
+    if (token !== this.bgmToken || !ctx || !this.musicGain) return;
+
+    const XF = Math.min(2, buffer.duration / 4); // crossfade seconds
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0, ctx.currentTime);
+    master.gain.linearRampToValueAtTime(volume, ctx.currentTime + 1.5);
+    master.connect(this.musicGain);
+    this.bgmGain = master;
+
+    const playPass = (when: number, first: boolean) => {
+      if (token !== this.bgmToken) return;
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const g = ctx.createGain();
+      const end = when + buffer.duration;
+      g.gain.setValueAtTime(first ? 1 : 0, when);
+      if (!first) g.gain.linearRampToValueAtTime(1, when + XF);
+      g.gain.setValueAtTime(1, end - XF);
+      g.gain.linearRampToValueAtTime(0, end);
+      src.connect(g);
+      g.connect(master);
+      src.start(when);
+      this.bgmSources.push(src);
+      src.onended = () => {
+        this.bgmSources = this.bgmSources.filter((s) => s !== src);
+      };
+      const next = end - XF;
+      // Schedule the next pass a little ahead of time (absolute context times keep it seamless)
+      this.bgmTimer = window.setTimeout(
+        () => playPass(next, false),
+        Math.max(250, (next - ctx.currentTime - 1.5) * 1000)
+      );
+    };
+    playPass(ctx.currentTime + 0.05, true);
+  }
+
+  /** Fades the menu music out and stops it. */
+  public stopBgm(fadeSeconds = 0.8) {
+    this.bgmToken++;
+    this.bgmUrl = null;
+    if (this.bgmTimer !== null) {
+      clearTimeout(this.bgmTimer);
+      this.bgmTimer = null;
+    }
+    const gain = this.bgmGain;
+    const sources = this.bgmSources;
+    this.bgmGain = null;
+    this.bgmSources = [];
+    if (!this.ctx || !gain) return;
+    const t = this.ctx.currentTime;
+    gain.gain.cancelScheduledValues(t);
+    gain.gain.setValueAtTime(gain.gain.value, t);
+    gain.gain.linearRampToValueAtTime(0, t + fadeSeconds);
+    for (const src of sources) {
+      try {
+        src.stop(t + fadeSeconds + 0.05);
+      } catch {
+        // already stopped
+      }
+    }
+    window.setTimeout(() => gain.disconnect(), (fadeSeconds + 0.2) * 1000);
+  }
+
+  /** True once the browser lets audio play (after the first click / key press). */
+  public isAudioRunning(): boolean {
+    return this.ctx?.state === 'running';
+  }
+
   public stopPreview() {
     this.previewRequest++;
     this.isPreviewPlaying = false;

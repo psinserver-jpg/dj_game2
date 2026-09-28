@@ -1,7 +1,10 @@
-import React, { useEffect } from 'react';
-import { Play, Sparkles, Sliders, Music, Zap, FileDown } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Play, Sparkles, Sliders, Music, Zap, FileDown, Volume2, VolumeX } from 'lucide-react';
 import { soundEngine } from '../services/soundEngine';
 import { IMAGES, DOCS } from '../data/assets';
+
+const TITLE_THEME_URL = '/music/title-theme.mp3';
+const BGM_MUTED_KEY = 'pulsebeat_title_bgm_muted';
 
 interface TitleScreenProps {
   onStart: () => void;
@@ -16,11 +19,50 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onOpenHowToPlay,
   keyboardEnabled = true,
 }) => {
-  // Listen for any key press to start
+  // Title music: starts right away; browsers keep it silent until the first click / key press
+  const [bgmMuted, setBgmMuted] = useState(() => {
+    try {
+      return localStorage.getItem(BGM_MUTED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [audioReady, setAudioReady] = useState(() => soundEngine.isAudioRunning());
+
+  useEffect(() => {
+    if (!bgmMuted) soundEngine.startBgm(TITLE_THEME_URL);
+    else soundEngine.stopBgm(0.3);
+  }, [bgmMuted]);
+  useEffect(() => () => soundEngine.stopBgm(0.8), []);
+
+  useEffect(() => {
+    if (audioReady) return;
+    const check = () => window.setTimeout(() => setAudioReady(soundEngine.isAudioRunning()), 100);
+    window.addEventListener('pointerdown', check);
+    window.addEventListener('keydown', check);
+    return () => {
+      window.removeEventListener('pointerdown', check);
+      window.removeEventListener('keydown', check);
+    };
+  }, [audioReady]);
+
+  const toggleBgm = () => {
+    setBgmMuted((m) => {
+      try {
+        localStorage.setItem(BGM_MUTED_KEY, m ? '0' : '1');
+      } catch {
+        // storage unavailable
+      }
+      return !m;
+    });
+  };
+
+  // Enter / Space start the game; other keys only wake the audio so the music can be heard
   useEffect(() => {
     if (!keyboardEnabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Tab' || e.repeat) return;
+      if (e.repeat || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
       soundEngine.init();
       onStart();
     };
@@ -36,6 +78,23 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
   return (
     <div className="relative flex-1 flex flex-col justify-center items-center px-4 overflow-hidden">
+      {/* Music toggle + autoplay hint */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+        {!bgmMuted && !audioReady && (
+          <span className="hidden sm:inline text-[11px] text-slate-300 bg-slate-950/60 border border-slate-700/60 rounded-full px-2.5 py-1 animate-pulse">
+            화면을 누르면 음악이 재생돼요
+          </span>
+        )}
+        <button
+          onClick={toggleBgm}
+          className="glass-panel rounded-full p-2.5 text-slate-200 hover:text-cyan-300 transition-colors cursor-pointer"
+          title={bgmMuted ? '배경음악 켜기' : '배경음악 끄기'}
+          aria-label={bgmMuted ? '배경음악 켜기' : '배경음악 끄기'}
+        >
+          {bgmMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+      </div>
+
       {/* Key visual background */}
       <img
         src={IMAGES.titleBackground}

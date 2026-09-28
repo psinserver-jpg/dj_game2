@@ -185,6 +185,14 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
   };
 
   // Keyboard: Enter/Space = start, ↑↓ = song, ←→ = difficulty
+  // Selection tick when the song or difficulty changes (not when the screen first opens)
+  const lastPickRef = useRef<string | null>(null);
+  useEffect(() => {
+    const pick = `${selectedSong.id}:${selectedDifficulty}`;
+    if (lastPickRef.current !== null && lastPickRef.current !== pick) soundEngine.playSelectSound();
+    lastPickRef.current = pick;
+  }, [selectedSong.id, selectedDifficulty]);
+
   const listRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!keyboardEnabled) return;
