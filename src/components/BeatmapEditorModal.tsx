@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SongMetadata, Note, DifficultyLevel, Beatmap } from '../types/game';
 import { soundEngine } from '../services/soundEngine';
+import { IMAGES } from '../data/assets';
 import { Play, Pause, Square, Save, X, Plus, Trash2, Music, Upload } from 'lucide-react';
 
 interface BeatmapEditorModalProps {
@@ -149,7 +150,7 @@ export const BeatmapEditorModal: React.FC<BeatmapEditorModalProps> = ({
       bpm,
       genre: customAudioBuffer ? 'Custom Audio' : 'User Created',
       duration,
-      coverUrl: '/src/assets/images/album_neon_velocity_1790586535950.jpg',
+      coverUrl: IMAGES.customCover,
       previewStart: 5,
       previewDuration: 10,
       musicPatternId: customAudioBuffer ? 'custom' : patternId,

@@ -33,6 +33,7 @@ export interface SongMetadata {
   genre: string;
   duration: number; // in seconds
   coverUrl: string;
+  stageUrl?: string; // in-game backdrop; derived from musicPatternId when omitted
   previewStart: number;
   previewDuration: number;
   difficulties: Record<DifficultyLevel, Beatmap>;

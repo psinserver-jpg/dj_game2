@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Play, Sparkles, Sliders, Music, Zap } from 'lucide-react';
 import { soundEngine } from '../services/soundEngine';
+import { IMAGES } from '../data/assets';
 
 interface TitleScreenProps {
   onStart: () => void;
@@ -32,9 +33,14 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
   return (
     <div className="relative min-h-[calc(100vh-60px)] flex flex-col justify-center items-center px-4 overflow-hidden">
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[300px] bg-pink-500/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* Key visual background */}
+      <img
+        src={IMAGES.titleBackground}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none animate-title-zoom"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#080b12]/70 via-[#080b12]/55 to-[#080b12] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,#080b12_85%)] pointer-events-none" />
 
       {/* Cyber Grid Lines */}
       <div
@@ -54,11 +60,15 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             <span>High-Speed 4-Key Rhythm Arcade</span>
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-black font-display tracking-tight text-white uppercase drop-shadow-md">
-            PULSE<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500">BEAT</span>
+          <h1 className="flex justify-center">
+            <img
+              src={IMAGES.logo}
+              alt="PULSEBEAT"
+              className="w-full max-w-[560px] drop-shadow-[0_0_24px_rgba(6,182,212,0.35)] animate-float-gentle"
+            />
           </h1>
 
-          <p className="text-slate-400 text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+          <p className="text-slate-300 text-sm sm:text-base max-w-md mx-auto leading-relaxed">
             짜릿한 타격감과 역동적인 신디사이저 사운드트랙.
             <br />
             비트에 맞춰 완벽한 타이밍을 포착하세요.
@@ -82,7 +92,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
 
         {/* Feature highlight items */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-6 border-t border-slate-800/80 text-left">
-          <div className="p-3.5 rounded bg-slate-900/40 border border-slate-800/60">
+          <div className="p-3.5 rounded bg-slate-950/60 backdrop-blur-sm border border-slate-700/60">
             <div className="text-xs font-bold text-cyan-400 mb-1 flex items-center gap-1.5">
               <Music className="w-3.5 h-3.5" />
               <span>실시간 오디오 합성</span>
@@ -92,7 +102,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </p>
           </div>
 
-          <div className="p-3.5 rounded bg-slate-900/40 border border-slate-800/60">
+          <div className="p-3.5 rounded bg-slate-950/60 backdrop-blur-sm border border-slate-700/60">
             <div className="text-xs font-bold text-pink-400 mb-1 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
               <span>4단계 난이도 & 3D 뷰</span>
@@ -102,7 +112,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             </p>
           </div>
 
-          <div className="p-3.5 rounded bg-slate-900/40 border border-slate-800/60">
+          <div className="p-3.5 rounded bg-slate-950/60 backdrop-blur-sm border border-slate-700/60">
             <div className="text-xs font-bold text-amber-400 mb-1 flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5" />
               <span>커스텀 에디터 & 보정</span>

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { GameScore, SongMetadata, DifficultyLevel } from '../types/game';
 import confetti from 'canvas-confetti';
+import { getStageUrl } from '../data/assets';
+import { StageBackdrop } from './StageBackdrop';
 import { RotateCcw, ListMusic, Share2, Check, Sparkles, Award } from 'lucide-react';
 
 interface ResultScreenProps {
@@ -55,7 +57,9 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   const gradeStyle = GRADE_COLORS[score.grade] || GRADE_COLORS.D;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 min-h-[calc(100vh-60px)] flex flex-col justify-center items-center">
+    <>
+    <StageBackdrop imageUrl={getStageUrl(song)} />
+    <div className="relative z-10 w-full max-w-3xl mx-auto px-4 py-8 min-h-[calc(100vh-60px)] flex flex-col justify-center items-center">
       <div className="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 backdrop-blur-md shadow-2xl space-y-6">
         {/* Header Title & Stage */}
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 pb-6 border-b border-slate-800">
@@ -228,5 +232,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };

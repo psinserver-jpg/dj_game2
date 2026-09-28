@@ -1,4 +1,5 @@
 import { SongMetadata, Beatmap, Note, DifficultyLevel } from '../types/game';
+import { cover, stage } from './assets';
 
 // Helper to generate musically synchronized rhythm charts
 function generateBeatmap(
@@ -142,7 +143,8 @@ export const INITIAL_SONGS: SongMetadata[] = [
     bpm: 140,
     genre: 'Cyberpunk Drum & Bass',
     duration: 68,
-    coverUrl: '/src/assets/images/album_neon_velocity_1790586535950.jpg',
+    coverUrl: cover('neon-velocity'),
+    stageUrl: stage('neon-velocity'),
     previewStart: 12,
     previewDuration: 10,
     musicPatternId: 'neon_velocity',
@@ -160,7 +162,8 @@ export const INITIAL_SONGS: SongMetadata[] = [
     bpm: 115,
     genre: 'Synthwave / City Pop',
     duration: 72,
-    coverUrl: '/src/assets/images/album_midnight_tokyo_1790586550695.jpg',
+    coverUrl: cover('midnight-tokyo'),
+    stageUrl: stage('midnight-tokyo'),
     previewStart: 16,
     previewDuration: 10,
     musicPatternId: 'midnight_tokyo',
@@ -178,7 +181,8 @@ export const INITIAL_SONGS: SongMetadata[] = [
     bpm: 160,
     genre: 'Arcade Speedcore',
     duration: 64,
-    coverUrl: '/src/assets/images/album_solar_overdrive_1790586564734.jpg',
+    coverUrl: cover('solar-overdrive'),
+    stageUrl: stage('solar-overdrive'),
     previewStart: 15,
     previewDuration: 10,
     musicPatternId: 'solar_overdrive',
@@ -196,7 +200,8 @@ export const INITIAL_SONGS: SongMetadata[] = [
     bpm: 95,
     genre: 'Melodic Lo-Fi Future',
     duration: 70,
-    coverUrl: '/src/assets/images/album_starlight_lullaby_1790586576394.jpg',
+    coverUrl: cover('starlight-lullaby'),
+    stageUrl: stage('starlight-lullaby'),
     previewStart: 14,
     previewDuration: 10,
     musicPatternId: 'starlight_lullaby',

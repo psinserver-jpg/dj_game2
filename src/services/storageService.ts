@@ -1,4 +1,5 @@
 import { GameScore, GameSettings, SongMetadata } from '../types/game';
+import { IMAGES } from '../data/assets';
 
 const SETTINGS_KEY = 'pulsebeat_settings_v1';
 const SCORES_KEY = 'pulsebeat_scores_v1';
@@ -80,7 +81,10 @@ export const storageService = {
     try {
       const data = localStorage.getItem(CUSTOM_SONGS_KEY);
       if (data) {
-        return JSON.parse(data);
+        // Older saves point at /src/assets/..., which does not exist in production builds.
+        return (JSON.parse(data) as SongMetadata[]).map((song) =>
+          song.coverUrl?.startsWith('/src/') ? { ...song, coverUrl: IMAGES.customCover } : song
+        );
       }
     } catch {
       // Ignore

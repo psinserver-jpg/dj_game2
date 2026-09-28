@@ -1,0 +1,89 @@
+{
+  "style": "Shared art direction for the PulseBeat rhythm game: glossy cyberpunk anime key-visual style, deep navy-black base (#080b12), neon cyan (#06B6D4) and hot pink (#EC4899) as the signature accent colors, crisp detail, cinematic lighting, high contrast. Absolutely no text, letters, numbers, logos, UI or watermarks unless the brief below explicitly asks for text.",
+  "assets": [
+    {
+      "id": "cover-neon-velocity",
+      "out": "raw/covers/neon-velocity.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Neon Velocity' by CYBER-STORM, cyberpunk drum & bass at 140 BPM. A motorbike rider streaking through a rain-soaked neon megacity at night, motion-blurred light trails in cyan and pink, dynamic diagonal composition."
+    },
+    {
+      "id": "cover-midnight-tokyo",
+      "out": "raw/covers/midnight-tokyo.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Midnight Tokyo' by Shibuya Neon Club, synthwave / 80s city pop at 115 BPM. A stylish young DJ with headphones around the neck standing on a Tokyo rooftop at midnight, the city skyline glowing below, a huge retro gradient sun setting behind in magenta and violet, dreamy nostalgic mood, subtle scanline haze. Palette leans violet, magenta and cyan."
+    },
+    {
+      "id": "cover-solar-overdrive",
+      "out": "raw/covers/solar-overdrive.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Solar Overdrive' by PULSECORE, arcade speedcore at 160 BPM. A sleek futuristic starfighter bursting out of a blazing sun, solar flares and speed lines radiating from the center, explosive energy, arcade shoot-'em-up vibe. Palette leans blazing orange, amber and hot pink against black space, with cyan engine glow."
+    },
+    {
+      "id": "cover-starlight-lullaby",
+      "out": "raw/covers/starlight-lullaby.png",
+      "size": "1024x1024",
+      "brief": "Square album cover for 'Starlight Lullaby' by Aura Chill, melodic lo-fi future at 95 BPM. A girl in an oversized hoodie sitting on a floating glass platform above clouds, gazing at a sky full of stars and a soft aurora, a small glowing cat beside her, calm and dreamy. Palette leans soft indigo, teal and pastel pink."
+    },
+    {
+      "id": "cover-custom",
+      "out": "raw/covers/custom.png",
+      "size": "1024x1024",
+      "brief": "Square generic cover art used for player-made custom charts. A glowing holographic vinyl record floating above a DJ turntable in a dark studio, the record's grooves lit in cyan and pink light rings, abstract sound waves around it, clean centered composition."
+    },
+    {
+      "id": "stage-neon-velocity",
+      "out": "raw/stages/neon-velocity.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Neon Velocity'. A first-person view down an endless elevated neon highway through a rainy cyberpunk megacity at night, the road vanishing to a central vanishing point, skyscrapers with cyan and pink signage (no readable text) on both sides. Keep the central vertical third darker and calmer because the game's note lane is drawn on top; put the brightest details on the left and right edges. No vehicles or characters in the center."
+    },
+    {
+      "id": "stage-midnight-tokyo",
+      "out": "raw/stages/midnight-tokyo.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Midnight Tokyo'. A synthwave view of a Tokyo-like skyline at midnight with a giant striped retro sun on the horizon and a glowing magenta perspective grid floor receding to the center. Keep the central vertical third darker and calmer because the game's note lane is drawn on top; brightest details on the left and right edges. No characters."
+    },
+    {
+      "id": "stage-solar-overdrive",
+      "out": "raw/stages/solar-overdrive.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Solar Overdrive'. Deep space with a colossal blazing sun partly off-frame at the top, solar flares arcing across the sky, streaks of hyperspace speed lines converging toward the center, debris and small asteroids glinting on the sides. Keep the central vertical third darker and calmer because the game's note lane is drawn on top. No ships in the center."
+    },
+    {
+      "id": "stage-starlight-lullaby",
+      "out": "raw/stages/starlight-lullaby.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape gameplay backdrop for the stage 'Starlight Lullaby'. A tranquil night sky above a sea of clouds, a soft teal and pink aurora, thousands of stars, floating glass islands with tiny glowing lanterns on the left and right edges. Keep the central vertical third darker and calmer because the game's note lane is drawn on top. No characters."
+    },
+    {
+      "id": "title-bg",
+      "out": "raw/ui/title-bg.png",
+      "size": "1536x1024",
+      "brief": "Wide landscape key visual for the game's title screen. A huge futuristic club stage seen from the dance floor: a DJ silhouette behind a glowing console far in the distance, massive cyan and pink laser beams fanning out, giant equalizer light walls on both sides, haze and sparkles, crowd silhouettes with raised hands at the very bottom edge. Leave the upper-middle area relatively open and dark so a logo can be placed over it."
+    },
+    {
+      "id": "logo",
+      "out": "raw/ui/logo.png",
+      "size": "1536x1024",
+      "brief": "Game logo wordmark that reads exactly 'PULSEBEAT' in one line, all capitals, spelled P-U-L-S-E-B-E-A-T. Bold futuristic italic geometric letterforms with chrome bevel; 'PULSE' in white-to-cyan neon, 'BEAT' in pink-to-magenta neon, a thin heartbeat/waveform line slicing through the letters, strong outer glow. The logo is centered and fills about 80% of the width. Background must be PURE FLAT BLACK (#000000) with nothing else on it: no floor, no reflection, no gradient, no vignette."
+    },
+    {
+      "id": "note-cyan",
+      "out": "raw/sprites/note-cyan.png",
+      "size": "1536x1024",
+      "brief": "A single rhythm-game note sprite seen straight-on (orthographic, no perspective): a wide horizontal rounded capsule, about 5 times wider than tall, made of glossy glowing cyan (#06B6D4) glass with a bright white specular highlight along the top edge and a thin light-cyan neon rim, soft cyan outer glow. Centered, occupying about 70% of the image width. Background must be PURE FLAT BLACK (#000000) with nothing else on it."
+    },
+    {
+      "id": "note-pink",
+      "out": "raw/sprites/note-pink.png",
+      "size": "1536x1024",
+      "brief": "A single rhythm-game note sprite seen straight-on (orthographic, no perspective): a wide horizontal rounded capsule, about 5 times wider than tall, made of glossy glowing hot pink (#EC4899) glass with a bright white specular highlight along the top edge and a thin light-pink neon rim, soft pink outer glow. Centered, occupying about 70% of the image width. Background must be PURE FLAT BLACK (#000000) with nothing else on it."
+    },
+    {
+      "id": "hit-burst",
+      "out": "raw/sprites/hit-burst.png",
+      "size": "1024x1024",
+      "brief": "A single radial hit-effect sprite for a rhythm game: an explosive starburst flash with a hot white core, sharp light rays and a shimmering ring of sparks, colored mostly white with icy light-blue tint so it can be recolored. Perfectly centered, fully contained inside the frame with margin. Background must be PURE FLAT BLACK (#000000) with nothing else on it."
+    }
+  ]
+}

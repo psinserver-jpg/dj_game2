@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Note, JudgmentType, GameSettings } from '../types/game';
 import { soundEngine } from '../services/soundEngine';
+import { IMAGES, getImage, isImageReady } from '../data/assets';
 
 interface Particle {
   x: number;
@@ -24,6 +25,13 @@ interface RingShockwave {
   decay: number;
 }
 
+interface HitBurst {
+  x: number;
+  y: number;
+  size: number;
+  start: number;
+}
+
 interface JudgmentAnimation {
   text: JudgmentType;
   fastSlow?: 'FAST' | 'SLOW';
@@ -39,9 +47,14 @@ interface RhythmGameCanvasProps {
   combo: number;
   grooveGauge: number; // 0 to 100
   recentJudgment: JudgmentAnimation | null;
+  backgroundUrl: string;
   onLanePress?: (lane: number) => void;
   onLaneRelease?: (lane: number) => void;
 }
+
+// Lanes alternate cyan / pink, matching LANE_COLORS.
+const NOTE_SPRITES = [IMAGES.noteCyan, IMAGES.notePink, IMAGES.noteCyan, IMAGES.notePink];
+const HIT_BURST_DURATION = 0.32; // seconds
 
 const LANE_COLORS = [
   { primary: '#06B6D4', glow: 'rgba(6, 182, 212, 0.6)', light: '#67E8F9' }, // Cyan
@@ -58,12 +71,14 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
   combo,
   grooveGauge,
   recentJudgment,
+  backgroundUrl,
   onLanePress,
   onLaneRelease,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const particlesRef = useRef<Particle[]>([]);
   const shockwavesRef = useRef<RingShockwave[]>([]);
+  const hitBurstsRef = useRef<HitBurst[]>([]);
   const lastJudgmentRef = useRef<JudgmentAnimation | null>(null);
 
   // Trigger particles when a new judgment arrives
@@ -72,11 +87,12 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
       lastJudgmentRef.current = recentJudgment;
       if (recentJudgment.text !== 'MISS' && canvasRef.current) {
         const canvas = canvasRef.current;
-        const width = canvas.width;
-        const height = canvas.height;
+        // CSS pixels, same geometry as the render loop's receptor row
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
         const receptorY = height * 0.86;
 
-        const highwayWidth = Math.min(width * 0.85, 480);
+        const highwayWidth = Math.min(width * 0.9, 440);
         const highwayLeft = (width - highwayWidth) / 2;
         const laneW = highwayWidth / 4;
         const hitX = highwayLeft + (recentJudgment.lane + 0.5) * laneW;
@@ -105,6 +121,14 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
             gravity: 0.15,
           });
         }
+
+        // Spawn sprite flash
+        hitBurstsRef.current.push({
+          x: hitX,
+          y: receptorY,
+          size: recentJudgment.text === 'PERFECT' ? 150 : 110,
+          start: performance.now(),
+        });
 
         // Spawn shockwave ring
         shockwavesRef.current.push({
@@ -146,17 +170,27 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
       const width = displayWidth;
       const height = displayHeight;
 
-      // 1. Draw Canvas Background & Dim
+      const spectrum = soundEngine.getAnalyserData();
+      const avgBass = (spectrum[0] + spectrum[1] + spectrum[2]) / 3 / 255; // 0.0 ~ 1.0
+
+      // 1. Draw Canvas Background (stage art, cover-fit, pulses with the bass) & Dim
       ctx.fillStyle = '#080b12';
       ctx.fillRect(0, 0, width, height);
+
+      const bg = getImage(backgroundUrl);
+      if (isImageReady(bg)) {
+        const scale =
+          Math.max(width / bg.naturalWidth, height / bg.naturalHeight) * (1.03 + avgBass * 0.025);
+        const drawW = bg.naturalWidth * scale;
+        const drawH = bg.naturalHeight * scale;
+        ctx.drawImage(bg, (width - drawW) / 2, (height - drawH) / 2, drawW, drawH);
+      }
 
       // Background dim overlay
       ctx.fillStyle = `rgba(0, 0, 0, ${settings.backgroundDim})`;
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Audio Spectrum & Beat reactive side columns
-      const spectrum = soundEngine.getAnalyserData();
-      const avgBass = (spectrum[0] + spectrum[1] + spectrum[2]) / 3 / 255; // 0.0 ~ 1.0
+      // 2. Beat reactive side columns
 
       // Side visualizer columns
       const numBars = 12;
@@ -372,7 +406,16 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
           const noteHeight = Math.max(8, is3D ? 10 + 12 * geom.curveP : 14);
           const radius = Math.min(6, noteHeight / 2);
 
-          // Note shadow/glow
+          const sprite = getImage(NOTE_SPRITES[lane]);
+          if (isImageReady(sprite)) {
+            // Sprite includes its own glow, so draw it slightly larger than the hit box
+            const spriteW = noteWidth * 1.12;
+            const spriteH = noteHeight * 1.35;
+            ctx.drawImage(sprite, noteX + (noteWidth - spriteW) / 2, geom.y - spriteH / 2, spriteW, spriteH);
+            return;
+          }
+
+          // Fallback vector note while the sprite loads
           ctx.save();
           ctx.shadowColor = laneTheme.primary;
           ctx.shadowBlur = 10 * (geom.curveP || 0.8);
@@ -491,6 +534,24 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
         ctx.restore();
       }
 
+      // 12b. Sprite hit flashes (additive blend)
+      const burstSprite = getImage(IMAGES.hitBurst);
+      const now = performance.now();
+      hitBurstsRef.current = hitBurstsRef.current.filter(
+        (b) => (now - b.start) / 1000 < HIT_BURST_DURATION
+      );
+      if (isImageReady(burstSprite)) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (const b of hitBurstsRef.current) {
+          const t = (now - b.start) / 1000 / HIT_BURST_DURATION; // 0 -> 1
+          const size = b.size * (0.55 + 0.6 * Math.sqrt(t));
+          ctx.globalAlpha = 1 - t * t;
+          ctx.drawImage(burstSprite, b.x - size / 2, b.y - size / 2, size, size);
+        }
+        ctx.restore();
+      }
+
       // 13. In-Game Combo Display
       if (combo > 2) {
         ctx.save();
@@ -565,7 +626,7 @@ export const RhythmGameCanvas: React.FC<RhythmGameCanvasProps> = ({
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [notes, currentSongTime, settings, activeLanes, combo, grooveGauge, recentJudgment]);
+  }, [notes, currentSongTime, settings, activeLanes, combo, grooveGauge, recentJudgment, backgroundUrl]);
 
   // Touch handlers for on-screen play on mobile / tablets
   const handleTouch = (e: React.TouchEvent) => {

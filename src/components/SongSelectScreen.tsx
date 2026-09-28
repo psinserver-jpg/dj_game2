@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { SongMetadata, DifficultyLevel, GameSettings } from '../types/game';
 import { soundEngine } from '../services/soundEngine';
 import { storageService } from '../services/storageService';
+import { getStageUrl } from '../data/assets';
+import { StageBackdrop } from './StageBackdrop';
 import { Play, Volume2, VolumeX, FastForward, Award, Plus, Trash2 } from 'lucide-react';
 
 interface SongSelectScreenProps {
@@ -108,7 +110,9 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
   const speedOptions = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 min-h-[calc(100vh-60px)] flex flex-col justify-between gap-6">
+    <>
+    <StageBackdrop imageUrl={getStageUrl(selectedSong)} />
+    <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 min-h-[calc(100vh-60px)] flex flex-col justify-between gap-6">
       {/* Top Banner / Selection Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left: Song List Column */}
@@ -357,5 +361,6 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };

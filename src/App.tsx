@@ -13,6 +13,7 @@ import {
   GameSettings,
 } from './types/game';
 import { INITIAL_SONGS } from './data/songs';
+import { IMAGES, getImage, getStageUrl } from './data/assets';
 import { soundEngine } from './services/soundEngine';
 import { storageService, DEFAULT_SETTINGS } from './services/storageService';
 
@@ -80,6 +81,14 @@ export default function App() {
   const currentSongTimeRef = useRef(0);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
+
+  // Warm the image cache so gameplay sprites and the stage backdrop draw from the first frame
+  useEffect(() => {
+    [IMAGES.noteCyan, IMAGES.notePink, IMAGES.hitBurst].forEach(getImage);
+  }, []);
+  useEffect(() => {
+    getImage(getStageUrl(selectedSong));
+  }, [selectedSong]);
 
   // Load saved settings & custom songs on mount
   useEffect(() => {
@@ -551,6 +560,7 @@ export default function App() {
               combo={combo}
               grooveGauge={grooveGauge}
               recentJudgment={recentJudgment}
+              backgroundUrl={getStageUrl(selectedSong)}
               onLanePress={handleLanePress}
               onLaneRelease={handleLaneRelease}
             />

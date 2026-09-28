@@ -51,3 +51,29 @@
 .animate-float-gentle {
   animation: float-gentle 3s ease-in-out infinite;
 }
+
+@keyframes title-zoom {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.1); }
+}
+
+.animate-title-zoom {
+  animation: title-zoom 24s ease-in-out infinite alternate;
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-backdrop-in {
+  animation: backdrop-in 0.6s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-title-zoom,
+  .animate-float-gentle,
+  .animate-pulse-subtle {
+    animation: none;
+  }
+}
