@@ -4,7 +4,8 @@ import { soundEngine } from '../services/soundEngine';
 import { storageService } from '../services/storageService';
 import { getStageUrl, handleCoverError } from '../data/assets';
 import { StageBackdrop } from './StageBackdrop';
-import { Play, Volume2, VolumeX, FastForward, Award, Plus, Trash2, Loader2 } from 'lucide-react';
+import { RankIcon } from './RankingModal';
+import { Play, Volume2, VolumeX, FastForward, Award, Plus, Trash2, Loader2, Trophy, ChevronRight } from 'lucide-react';
 
 interface SongSelectScreenProps {
   songs: SongMetadata[];
@@ -17,6 +18,8 @@ interface SongSelectScreenProps {
   onStartGame: () => void;
   onOpenEditor: () => void;
   onDeleteCustomSong?: (id: string) => void;
+  onOpenRanking: () => void;
+  currentUserKey: string | null;
   keyboardEnabled?: boolean; // false while a modal is open
   isLoading?: boolean; // the selected song's audio is still being fetched/decoded
 }
@@ -129,6 +132,8 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
   onStartGame,
   onOpenEditor,
   onDeleteCustomSong,
+  onOpenRanking,
+  currentUserKey,
   keyboardEnabled = true,
   isLoading = false,
 }) => {
@@ -173,6 +178,8 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
 
   const currentBeatmap = selectedSong.difficulties[selectedDifficulty];
   const currentRecord = storageService.getScore(selectedSong.id, selectedDifficulty);
+  const leaderboard = storageService.getLeaderboard(selectedSong.id, selectedDifficulty);
+  const myRank = leaderboard.find((e) => e.userKey === currentUserKey)?.rank;
 
   const speedOptions = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
   const difficulties: DifficultyLevel[] = ['EASY', 'NORMAL', 'HARD', 'EXPERT'];
@@ -442,7 +449,9 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
             <div className="flex items-center gap-2.5 min-w-0">
               <Award className="w-4 h-4 text-amber-400 shrink-0" />
               <div className="min-w-0">
-                <div className="text-[11px] text-slate-400 font-medium">최고 기록</div>
+                <div className="text-[11px] text-slate-400 font-medium">
+                  내 최고 기록{myRank ? <span className="ml-1 text-cyan-400">· {myRank}위</span> : null}
+                </div>
                 <div className="text-sm font-bold text-white font-mono truncate">
                   {currentRecord
                     ? `${currentRecord.score.toLocaleString()} · ${currentRecord.grade}`
@@ -458,6 +467,40 @@ export const SongSelectScreen: React.FC<SongSelectScreenProps> = ({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Chart leaderboard (top 3) */}
+          <div className="shrink-0 bg-slate-950/60 border border-slate-800/80 rounded-lg px-3 py-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                이 곡 랭킹 ({leaderboard.length}명)
+              </span>
+              <button
+                onClick={onOpenRanking}
+                className="flex items-center text-[11px] text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+              >
+                전체 보기
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {leaderboard.length === 0 ? (
+              <div className="text-[11px] text-slate-600 py-0.5">아직 기록이 없습니다</div>
+            ) : (
+              <ol className="space-y-0.5">
+                {leaderboard.slice(0, 3).map((e) => (
+                  <li
+                    key={e.userKey}
+                    className={`flex items-center gap-2 text-xs ${e.userKey === currentUserKey ? 'text-cyan-200' : 'text-slate-300'}`}
+                  >
+                    <span className="w-5 flex justify-center shrink-0"><RankIcon rank={e.rank} /></span>
+                    <span className="truncate flex-1 font-semibold">{e.name}</span>
+                    <span className="font-mono text-slate-400">{e.score.grade}</span>
+                    <span className="font-mono w-20 text-right">{e.score.score.toLocaleString()}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
 
           {/* Speed Modifier */}

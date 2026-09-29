@@ -4,14 +4,18 @@ import confetti from 'canvas-confetti';
 import { soundEngine } from '../services/soundEngine';
 import { getStageUrl, handleCoverError } from '../data/assets';
 import { StageBackdrop } from './StageBackdrop';
+import { storageService } from '../services/storageService';
 import { TimingAnalysis } from './TimingAnalysis';
-import { RotateCcw, ListMusic, Share2, Check, Sparkles, Award } from 'lucide-react';
+import { RotateCcw, ListMusic, Share2, Check, Sparkles, Award, Trophy, User } from 'lucide-react';
 
 interface ResultScreenProps {
   score: GameScore;
   song: SongMetadata;
   difficulty: DifficultyLevel;
   isNewRecord: boolean;
+  playerKey: string | null;
+  playerName: string | null;
+  onOpenRanking: () => void;
   onRetry: () => void;
   onSongSelect: () => void;
   audioOffsetMs: number;
@@ -34,6 +38,9 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   song,
   difficulty,
   isNewRecord,
+  playerKey,
+  playerName,
+  onOpenRanking,
   onRetry,
   onSongSelect,
   audioOffsetMs,
@@ -66,6 +73,9 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   };
 
   const gradeStyle = GRADE_COLORS[score.grade] || GRADE_COLORS.D;
+  // The leaderboard already includes this play when it was a personal best
+  const leaderboard = storageService.getLeaderboard(song.id, difficulty);
+  const myEntry = leaderboard.find((e) => e.userKey === playerKey);
 
   return (
     <>
@@ -98,6 +108,24 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
                 {song.title}
               </h2>
               <p className="text-xs text-slate-400">{song.artist}</p>
+              {playerName && (
+                <div className="mt-1.5 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-xs">
+                  <span className="flex items-center gap-1 text-cyan-300 font-semibold">
+                    <User className="w-3.5 h-3.5" />
+                    {playerName}
+                  </span>
+                  {myEntry && (
+                    <button
+                      onClick={onOpenRanking}
+                      className="flex items-center gap-1 text-amber-300 hover:text-amber-200 font-semibold cursor-pointer"
+                      title="랭킹 보기"
+                    >
+                      <Trophy className="w-3.5 h-3.5" />
+                      이 곡 {myEntry.rank}위 / {leaderboard.length}명
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

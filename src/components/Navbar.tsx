@@ -1,13 +1,18 @@
 import React from 'react';
 import { GameView } from '../types/game';
-import { Sliders, HelpCircle, Music, Play, FileDown } from 'lucide-react';
+import { Sliders, HelpCircle, Music, Play, FileDown, Trophy, User, LogOut, LogIn } from 'lucide-react';
 import { DOCS, IMAGES } from '../data/assets';
+import { UserAccount } from '../services/userService';
 
 interface NavbarProps {
   currentView: GameView;
   onNavigate: (view: GameView) => void;
   onOpenSettings: () => void;
   onOpenHowToPlay: () => void;
+  onOpenRanking: () => void;
+  currentUser: UserAccount | null;
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -15,6 +20,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   onOpenSettings,
   onOpenHowToPlay,
+  onOpenRanking,
+  currentUser,
+  onLogin,
+  onLogout,
 }) => {
   // If in active gameplay, show minimal bar or keep lean so focus remains on music
   if (currentView === 'PLAYING') {
@@ -53,6 +62,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             노트 에디터
           </button>
           <button
+            onClick={onOpenRanking}
+            className="hover:text-cyan-400 transition-colors cursor-pointer"
+          >
+            랭킹
+          </button>
+          <button
             onClick={onOpenHowToPlay}
             className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
@@ -61,7 +76,39 @@ export const Navbar: React.FC<NavbarProps> = ({
         </nav>
 
         {/* Zone 3: 1-2 primary actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {currentUser ? (
+            <div className="flex items-center rounded border border-cyan-700/60 bg-cyan-500/10 text-xs font-semibold text-cyan-200">
+              <span className="flex items-center gap-1.5 pl-2.5 pr-2 py-1.5 max-w-[7rem] sm:max-w-[10rem]" title={`${currentUser.name} 님으로 플레이 중`}>
+                <User className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{currentUser.name}</span>
+              </span>
+              <button
+                onClick={onLogout}
+                className="px-2 py-1.5 border-l border-cyan-700/60 text-cyan-300/80 hover:text-white hover:bg-cyan-500/20 transition-colors cursor-pointer"
+                title="로그아웃"
+                aria-label="로그아웃"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLogin}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/20 rounded border border-cyan-700/60 transition-colors whitespace-nowrap cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>입장</span>
+            </button>
+          )}
+          <button
+            onClick={onOpenRanking}
+            className="md:hidden flex items-center px-2.5 py-1.5 text-xs font-semibold text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 rounded border border-slate-700 transition-colors cursor-pointer"
+            title="랭킹"
+            aria-label="랭킹"
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+          </button>
           <a
             href={DOCS.plan.url}
             download={DOCS.plan.fileName}

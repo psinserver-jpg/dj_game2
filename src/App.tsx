@@ -19,6 +19,7 @@ import { IMAGES, getImage, getStageUrl } from './data/assets';
 import { soundEngine } from './services/soundEngine';
 import { storageService, DEFAULT_SETTINGS } from './services/storageService';
 import { loadGeneratedSongs } from './services/musicLibrary';
+import { userService, UserAccount } from './services/userService';
 
 import { Navbar } from './components/Navbar';
 import { TitleScreen } from './components/TitleScreen';
@@ -30,6 +31,8 @@ import { ResultScreen } from './components/ResultScreen';
 import { SettingsModal } from './components/SettingsModal';
 import { BeatmapEditorModal } from './components/BeatmapEditorModal';
 import { HowToPlayModal } from './components/HowToPlayModal';
+import { LoginModal } from './components/LoginModal';
+import { RankingModal } from './components/RankingModal';
 
 export default function App() {
   // Navigation & Modals
@@ -37,7 +40,13 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const isModalOpen = isSettingsOpen || isHowToPlayOpen;
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isRankingOpen, setIsRankingOpen] = useState(false);
+  const isModalOpen = isSettingsOpen || isHowToPlayOpen || isLoginOpen || isRankingOpen;
+
+  // Player (simple local ID + password); records and rankings are saved under this ID
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => userService.getCurrentUser());
+  const pendingViewRef = useRef<GameView>('SONG_SELECT'); // where to go once the player has logged in
 
   // Settings
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
@@ -187,7 +196,7 @@ export default function App() {
     startRequestRef.current++;
     isLoadingSongRef.current = false;
     setIsLoadingSong(false);
-  }, [selectedSong, currentView, isSettingsOpen, isHowToPlayOpen]);
+  }, [selectedSong, currentView, isSettingsOpen, isHowToPlayOpen, isLoginOpen, isRankingOpen]);
 
   const handleSelectSong = useCallback((song: SongMetadata) => {
     hasPickedSongRef.current = true;
@@ -236,6 +245,11 @@ export default function App() {
 
   const handleStartGame = useCallback(async () => {
     if (isLoadingSongRef.current) return; // already waiting for this song's audio
+    if (!userService.getCurrentUser()) {
+      pendingViewRef.current = 'SONG_SELECT';
+      setIsLoginOpen(true);
+      return;
+    }
     soundEngine.init(); // inside the click/key gesture, so the AudioContext may start
     soundEngine.stopPreview();
 
@@ -323,6 +337,8 @@ export default function App() {
     };
 
     const isRecord = storageService.saveScore(selectedSong.id, selectedDifficulty, gameScore);
+    const player = userService.getCurrentUser();
+    if (player) userService.incrementPlayCount(player.key);
     setIsNewRecord(isRecord);
     setLastGameScore(gameScore);
     setCurrentView('RESULT');
@@ -618,6 +634,36 @@ export default function App() {
         100
       : 100;
 
+  // --- Player login ---
+  // Screens past the title need a player; send them through the login first
+  const navigateTo = (view: GameView) => {
+    if (view !== 'TITLE' && !userService.getCurrentUser()) {
+      pendingViewRef.current = view;
+      setIsLoginOpen(true);
+      return;
+    }
+    setCurrentView(view);
+  };
+
+  const handleLogin = (user: UserAccount, created: boolean) => {
+    // Records made before accounts existed go to the first player registered on this device
+    if (created && Object.keys(userService.getUsers()).length === 1) {
+      storageService.adoptLegacyScores(user.key);
+    }
+    setCurrentUser(user);
+    setIsLoginOpen(false);
+    setCurrentView(pendingViewRef.current);
+    pendingViewRef.current = 'SONG_SELECT';
+  };
+
+  const handleLogout = () => {
+    soundEngine.stop();
+    soundEngine.stopPreview();
+    userService.logout();
+    setCurrentUser(null);
+    setCurrentView('TITLE');
+  };
+
   // Custom song saving
   const handleSaveCustomSong = (newSong: SongMetadata) => {
     storageService.saveCustomSong(newSong);
@@ -642,10 +688,17 @@ export default function App() {
         onNavigate={(view) => {
           soundEngine.stop();
           soundEngine.stopPreview();
-          setCurrentView(view);
+          navigateTo(view);
         }}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenHowToPlay={() => setIsHowToPlayOpen(true)}
+        onOpenRanking={() => setIsRankingOpen(true)}
+        currentUser={currentUser}
+        onLogin={() => {
+          pendingViewRef.current = currentView === 'TITLE' || currentView === 'RESULT' ? 'SONG_SELECT' : currentView;
+          setIsLoginOpen(true);
+        }}
+        onLogout={handleLogout}
       />
 
       {/* Main View Router */}
@@ -653,7 +706,10 @@ export default function App() {
       <main className="flex-1 min-h-0 relative flex flex-col overflow-y-auto overflow-x-hidden">
         {currentView === 'TITLE' && (
           <TitleScreen
-            onStart={() => setCurrentView('SONG_SELECT')}
+            onStart={() => {
+              pendingViewRef.current = 'SONG_SELECT';
+              setIsLoginOpen(true);
+            }}
             keyboardEnabled={!isModalOpen}
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenHowToPlay={() => setIsHowToPlayOpen(true)}
@@ -672,6 +728,8 @@ export default function App() {
             onStartGame={handleStartGame}
             onOpenEditor={() => setCurrentView('BEATMAP_EDITOR')}
             onDeleteCustomSong={handleDeleteCustomSong}
+            onOpenRanking={() => setIsRankingOpen(true)}
+            currentUserKey={currentUser?.key ?? null}
             keyboardEnabled={!isModalOpen}
             isLoading={isLoadingSong}
           />
@@ -722,6 +780,9 @@ export default function App() {
             song={selectedSong}
             difficulty={selectedDifficulty}
             isNewRecord={isNewRecord}
+            playerKey={currentUser?.key ?? null}
+            playerName={currentUser?.name ?? null}
+            onOpenRanking={() => setIsRankingOpen(true)}
             onRetry={handleStartGame}
             onSongSelect={() => setCurrentView('SONG_SELECT')}
             audioOffsetMs={settings.audioOffsetMs}
@@ -765,6 +826,27 @@ export default function App() {
         settings={settings}
         onSave={handleSaveSettings}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      <LoginModal
+        isOpen={isLoginOpen}
+        currentUser={currentUser}
+        onLogin={handleLogin}
+        onContinue={() => {
+          setIsLoginOpen(false);
+          setCurrentView(pendingViewRef.current);
+          pendingViewRef.current = 'SONG_SELECT';
+        }}
+        onClose={() => setIsLoginOpen(false)}
+      />
+
+      <RankingModal
+        isOpen={isRankingOpen}
+        songs={allSongs}
+        initialSong={selectedSong}
+        initialDifficulty={selectedDifficulty}
+        currentUserKey={currentUser?.key ?? null}
+        onClose={() => setIsRankingOpen(false)}
       />
 
       <HowToPlayModal
